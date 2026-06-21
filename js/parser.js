@@ -11,7 +11,7 @@
 function parseRawValue(rawValue) {
   if (!rawValue) return null;
   const val = rawValue.trim();
-  if (!val || val === '#N/A' || val === 'N/A' || val === '-' || val === '—') return null;
+  if (!val || val === '#N/A' || val === 'N/A' || val === '-' || val === '—' || val === '−') return null;
 
   // Boolean
   if (val.toLowerCase() === 'true') return true;
@@ -23,9 +23,10 @@ function parseRawValue(rawValue) {
     return isNaN(n) ? null : n;
   }
 
-  // Plain number — Number() requires the ENTIRE string to be valid,
+  // Plain number — strip spaces (thousands separator: "64 222,70" → "64222.70")
+  // Number() requires the ENTIRE string to be valid,
   // unlike parseFloat() which stops mid-string (e.g. "15.06.2026" → 15.06).
-  const n = Number(val.replace(',', '.'));
+  const n = Number(val.replace(/\s/g, '').replace(',', '.'));
   if (!isNaN(n)) return n;
 
   // String fallback
@@ -75,7 +76,13 @@ function splitIntoBlocks(text) {
  * Parses a full text input (M15 or H1) into an array of candle objects.
  */
 function parseCandles(text) {
-  return splitIntoBlocks(text)
+  if (!text) return [];
+  // Strip leading/trailing quotes that some tools add around each block
+  // Handles straight " and curly " " quotation marks
+  const normalized = text
+    .replace(/^["“”]\s*/gm, '')
+    .replace(/\s*["“”]$/gm, '');
+  return splitIntoBlocks(normalized)
     .map(parseCandleBlock)
     .filter(c => c.ts !== null && c.ts !== undefined);
 }
