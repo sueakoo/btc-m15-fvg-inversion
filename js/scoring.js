@@ -6,7 +6,6 @@
 
 // ── Вспомогательные ─────────────────────────────────────────
 
-// Качество объёмного участия для Block 1
 function _volQuality(mx) {
   const fvg = mx.fvg_volume_share   ?? 0;
   const fin = mx.final_volume_share ?? 0;
@@ -15,8 +14,6 @@ function _volQuality(mx) {
   return 'weak';
 }
 
-// CVD совпадает с направлением инверсии?
-// Принимает cvd_sign как число (1/-1) или строку ('positive'/'negative')
 function _cvdWithDir(cvdSign, direction) {
   const isPos = cvdSign === 1 || cvdSign === 'positive';
   const isNeg = cvdSign === -1 || cvdSign === 'negative';
@@ -25,13 +22,72 @@ function _cvdWithDir(cvdSign, direction) {
   return false;
 }
 
-// limb "против инверсии"?
-// Лонг: limb > 0 = больше лонг-ликвидаций = чужие лонги выбиты = «против» = чужие стопы
-// Шорт: limb < 0 = больше шорт-ликвидаций
 function _limbAgainst(limbPct, direction) {
   if (direction === 'long')  return (limbPct ?? 0) > 0;
   if (direction === 'short') return (limbPct ?? 0) < 0;
   return false;
+}
+
+// ── Комментарии к блокам ─────────────────────────────────────
+
+function _b1Comment(score) {
+  if (score === 14) return 'Ресурс набирался агрессивно — большая часть объёма прошла внутри имбаланса. Концентрация покупок в зоне.';
+  if (score === 13) return 'OI набирался уверенно при нормальной объёмной структуре. Стандартный сценарий накопления.';
+  if (score === 12) return 'Умеренный OI с сильным объёмным участием в имбалансе. Ресурс концентрирован.';
+  if (score === 11) return 'Умеренный OI, объём без отклонений. Позиция набиралась ровно, без акцентов.';
+  if (score === 10) return 'Сильный чистый OI, но объём в имбалансе не усиливал — позиция набиралась раньше.';
+  if (score >= 8)   return 'Умеренный OI при слабом участии в имбалансе. Ресурс есть, но набирался осторожно.';
+  if (score === 7)  return 'Чистый OI слабый, но валовый ресурс был — часть позиций пережила снятия.';
+  if (score >= 5)   return 'Ресурс ограничен, объём частично подтверждал. Накопление неуверенное.';
+  if (score >= 1)   return 'Ресурс минимальный, объём не подтверждал интерес. Движение без наполнения.';
+  return 'Инверсия на пустом рынке — новой позиции нет.';
+}
+
+function _b2Comment(score) {
+  if (score === 11) return 'Почти весь OI набран ниже имбаланса и внутри него — позиция хорошо защищена снизу.';
+  if (score === 10) return 'Большая часть OI ниже имбаланса и внутри него, доля непосредственно в FVG чуть ниже оптимальной.';
+  if (score === 9)  return 'Размещение хорошее — основной ресурс ниже имбаланса и внутри него.';
+  if (score === 8)  return 'OI преимущественно в нужных ценовых уровнях, небольшой дефицит внутри FVG.';
+  if (score >= 6)   return 'Смешанное размещение — часть OI на хорошей цене, часть у верхней границы.';
+  if (score >= 4)   return 'OI расположен преимущественно внутри FVG или выше — подушки снизу мало.';
+  if (score >= 2)   return 'Слабое размещение — большая часть позиции взята у максимума или близко к инверсии.';
+  return 'OI практически нет или размещён на максимуме. Позиции нечем защищать.';
+}
+
+function _b3Comment(score, transfer) {
+  if (transfer)     return 'Позиция разгружена, но высокий объём в зоне говорит о вероятной смене рук. Передача риска.';
+  if (score === 13) return 'Удержание полное — никто не зафиксировался. Позиция остаётся живой.';
+  if (score === 11) return 'Небольшая часть OI снята, основной объём сохранён. Удержание хорошее.';
+  if (score >= 9)   return 'Заметная разгрузка, но больше половины осталось — есть кому защищать уровень.';
+  if (score >= 7)   return 'Значительная часть позиции снята — защиты мало.';
+  if (score >= 3)   return 'Большая часть OI ушла. Уровень фактически без защиты.';
+  return 'Практически полная разгрузка. Кому держать уровень — непонятно.';
+}
+
+function _b5Comment(volStrong, cvdMode) {
+  if (volStrong && cvdMode === 'confirmed') return 'Зона принята хорошо — объём в имбалансе высокий, CVD подтверждает направление.';
+  if (volStrong && cvdMode === 'against')   return 'Объём был, но покупатели встретили сопротивление. Зона принята с усилием.';
+  if (volStrong && cvdMode === 'neutral')   return 'Объём прошёл, CVD нейтрален. Явного перекоса нет — рынок принял зону без акцента.';
+  if (cvdMode === 'confirmed')              return 'Объём слабый, CVD подтверждает. Аукцион формальный — сопротивления почти не было.';
+  return 'Зона пройдена быстро и без объёма. Настоящего аукциона не было.';
+}
+
+function _b6Comment(score, flag) {
+  if (flag === 'high_tail_risk') return 'Кульминационные хвосты — цена выбрасывалась но не удерживалась. Повышенный риск глубокого теста.';
+  if (score >= 7) return 'Движение чистое — уверенные тела, минимальные хвосты. Сопротивления не было.';
+  if (score >= 5) return 'Умеренная геометрия — хвосты есть, но тела держались. Небольшое встречное давление.';
+  return 'Заметные хвосты при слабых телах — движение шло с трудом, встречало сопротивление.';
+}
+
+function _b8Comment(score) {
+  if (score === 7) return 'Алгоритмическая позиция выше цены инверсии — OI поддерживает уровень снизу.';
+  if (score === 6) return 'Минимальное расхождение — implied_price почти совпадает с инверсией. Давление OI близко к текущей цене.';
+  if (score === 5) return 'Небольшое расхождение. Тест верхней части имбаланса возможен, но поддержка есть.';
+  if (score === 4) return 'Умеренное расхождение — позиция держит середину имбаланса. Тест вероятен.';
+  if (score === 3) return 'Заметное расхождение — implied_price значительно ниже инверсии. Тест вглубь имбаланса ожидаем.';
+  if (score === 2) return 'Большое расхождение — позиция у нижней границы. Риск глубокого теста высок.';
+  if (score === 1) return 'Критическое расхождение — позиция на самом дне имбаланса. Удержание под вопросом.';
+  return 'implied_price ниже Pivot или расхождение > 120% имбаланса. Позиция не поддерживает инверсию.';
 }
 
 // ── Блок 1 — Energy (14 pts) ─────────────────────────────────
@@ -41,35 +97,35 @@ function _scoreBlock1(mx, det) {
   const { imb_range_pct } = det.fvg;
   const vq = _volQuality(mx);
 
-  if (gross === 0) return { score: 0, label: 'Нет нового OI, нет объёмного участия' };
+  if (gross === 0) {
+    return { score: 0, label: 'Нет нового OI, нет объёмного участия', comment: _b1Comment(0) };
+  }
 
   if (net >= 0.40) {
-    if (vq === 'strong') return { score: 14, label: 'Сильный OI + выраженное объёмное участие в FVG/финальной свече' };
-    if (vq === 'normal') return { score: 13, label: 'Сильный OI + нормальная объёмная структура' };
-    return                      { score: 10, label: 'Сильный OI, объём без усиления' };
+    if (vq === 'strong') return { score: 14, label: 'Сильный OI + выраженное объёмное участие в FVG/финальной свече', comment: _b1Comment(14) };
+    if (vq === 'normal') return { score: 13, label: 'Сильный OI + нормальная объёмная структура',                     comment: _b1Comment(13) };
+    return                      { score: 10, label: 'Сильный OI, объём без усиления',                                  comment: _b1Comment(10) };
   }
   if (net >= 0.20) {
-    if (vq === 'strong') return { score: 12, label: 'Умеренный OI + выраженное объёмное участие' };
-    if (vq === 'normal') return { score: 11, label: 'Умеренный OI + нормальная объёмная структура' };
-    if (imb_range_pct > 0.40)   return { score: 5, label: 'Умеренный OI, объём без усиления, FVG большой' };
-    return                              { score: 8, label: 'Умеренный OI, объём слабее — FVG малый/средний' };
+    if (vq === 'strong') return { score: 12, label: 'Умеренный OI + выраженное объёмное участие',           comment: _b1Comment(12) };
+    if (vq === 'normal') return { score: 11, label: 'Умеренный OI + нормальная объёмная структура',         comment: _b1Comment(11) };
+    if (imb_range_pct > 0.40)   return { score: 5, label: 'Умеренный OI, объём без усиления, FVG большой', comment: _b1Comment(5)  };
+    return                              { score: 8, label: 'Умеренный OI, объём слабее — FVG малый/средний',comment: _b1Comment(8)  };
   }
-  // net < 0.20%
-  if (gross >= 0.40) return { score: 7, label: 'Слабый чистый OI, gross высокий — частичное участие' };
+  if (gross >= 0.40) return { score: 7, label: 'Слабый чистый OI, gross высокий — частичное участие', comment: _b1Comment(7) };
   if (gross >= 0.20) {
-    if (vq !== 'weak') return { score: 6, label: 'Слабый OI, ресурс есть, признаки участия' };
-    return                    { score: 4, label: 'Слабый OI, ресурс ограничен, объём без участия' };
+    if (vq !== 'weak') return { score: 6, label: 'Слабый OI, ресурс есть, признаки участия',          comment: _b1Comment(6) };
+    return                    { score: 4, label: 'Слабый OI, ресурс ограничен, объём без участия',     comment: _b1Comment(4) };
   }
-  // gross < 0.20%
-  if (imb_range_pct < 0.15) return { score: 3, label: 'Минимальный ресурс, FVG малый' };
-  if (imb_range_pct <= 0.40) return { score: 2, label: 'Минимальный ресурс, FVG средний' };
-  return                            { score: 1, label: 'Минимальный ресурс, FVG большой' };
+  if (imb_range_pct < 0.15) return { score: 3, label: 'Минимальный ресурс, FVG малый',    comment: _b1Comment(3) };
+  if (imb_range_pct <= 0.40) return { score: 2, label: 'Минимальный ресурс, FVG средний', comment: _b1Comment(2) };
+  return                            { score: 1, label: 'Минимальный ресурс, FVG большой',  comment: _b1Comment(1) };
 }
 
 // ── Блок 2 — OI Placement (11 pts) ───────────────────────────
 function _scoreBlock2(mx) {
   const gross = mx.gross_oi ?? 0;
-  if (gross === 0) return { score: 0, label: 'Нет нового OI' };
+  if (gross === 0) return { score: 0, label: 'Нет нового OI', comment: _b2Comment(0) };
 
   const combined = (mx.share_below ?? 0) + (mx.share_fvg ?? 0);
   const fvg      = mx.share_fvg ?? 0;
@@ -84,7 +140,11 @@ function _scoreBlock2(mx) {
   if (gross < 0.20)             score = Math.min(score, 4);
   if (mx.oi_window_count <= 3)  score = Math.min(score, 8);
 
-  return { score, label: `Зона: ${(combined * 100).toFixed(0)}%, в FVG: ${(fvg * 100).toFixed(0)}%` };
+  return {
+    score,
+    label:   `Зона: ${(combined * 100).toFixed(0)}%, в FVG: ${(fvg * 100).toFixed(0)}%`,
+    comment: _b2Comment(score),
+  };
 }
 
 // ── Блок 3 — OI Retention (13 pts) ───────────────────────────
@@ -94,11 +154,10 @@ function _scoreBlock3(mx) {
   const ret   = mx.retention_ratio ?? 0;
   const fvgVol= mx.fvg_volume_share ?? 0;
 
-  if (gross === 0) return { score: 0, label: 'Нет нового OI', transfer: false };
+  if (gross === 0) return { score: 0, label: 'Нет нового OI', comment: _b3Comment(0, false), transfer: false };
 
-  // Передача риска
   if (net < 0.20 && gross >= 0.40 && fvgVol >= 0.35) {
-    return { score: 9, label: 'Передача риска: высокая активность при слабом чистом OI', transfer: true };
+    return { score: 9, label: 'Передача риска: высокая активность при слабом чистом OI', comment: _b3Comment(9, true), transfer: true };
   }
 
   let score;
@@ -124,7 +183,12 @@ function _scoreBlock3(mx) {
     else                  score =  1;
   }
 
-  return { score, label: `net_oi: ${net}%, retention: ${(ret * 100).toFixed(0)}%`, transfer: false };
+  return {
+    score,
+    label:    `net_oi: ${net}%, retention: ${(ret * 100).toFixed(0)}%`,
+    comment:  _b3Comment(score, false),
+    transfer: false,
+  };
 }
 
 // ── Блок 4 — Механика захвата (16 pts) ───────────────────────
@@ -138,13 +202,16 @@ function _scoreBlock4(mx, det) {
   const cvdSign   = inv.cvd_sign   ?? null;
   const cvdSmall  = inv.cvd_small  ?? false;
   const doiPct    = inv.doi_pct    ?? 0;
+  const oiGrowing = doiPct > 0;
 
-  const oiGrowing  = doiPct > 0;
-
-  // Если CVD данных нет вообще — не угадываем сценарий, честно говорим об этом
   if (cvdSign == null) {
     const score = oiGrowing ? 5 : 3;
-    return { score, label: 'CVD данные отсутствуют — оценка по OI', scenario: 'no_cvd' };
+    return {
+      score,
+      label:    'CVD данные отсутствуют — оценка по OI',
+      comment:  'CVD данные отсутствуют — механика захвата определяется только по OI.',
+      scenario: 'no_cvd',
+    };
   }
 
   const strongBody = bodyPct >= 50 && Math.abs(clvPct) >= 60;
@@ -155,42 +222,66 @@ function _scoreBlock4(mx, det) {
   const cvdStrong  = !cvdSmall && Math.abs(cvdPct) >= 0.30;
   const cvdNeutral = cvdSmall || Math.abs(cvdPct) < 0.10;
 
-  // Лимитное поглощение: CVD против или нейтрал + OI растёт
   if ((cvdAgainst || cvdNeutral) && oiGrowing && !cvdWithDir) {
     const score = cvdAgainst && cvdStrong && strongBody ? 16
                 : cvdAgainst && cvdStrong               ? 15
                 : strongBody                            ? 14
                 :                                         13;
-    return { score, label: 'Лимитное поглощение', scenario: 'absorption' };
+    return {
+      score,
+      label:    'Лимитное поглощение',
+      comment:  'Лимитный покупатель поглощал продажи — CVD давил, но цена шла вверх. Крупный участник скрытно набирал позицию.',
+      scenario: 'absorption',
+    };
   }
 
-  // Рыночная инициатива: CVD в сторону + OI растёт
   if (cvdWithDir && oiGrowing) {
     const score = strongBody && cvdStrong ? 13
                 : strongBody              ? 12
                 :                           11;
-    return { score, label: 'Рыночная инициатива', scenario: 'initiative' };
+    return {
+      score,
+      label:    'Рыночная инициатива',
+      comment:  'Покупатели шли открыто — CVD и цена в одну сторону, OI рос. Прямое направленное давление.',
+      scenario: 'initiative',
+    };
   }
 
-  // Инверсия через сопротивление: тело слабое, CVD сильный в сторону
   if (bodyPct < 35 && cvdStrong && cvdWithDir) {
     const score = oiGrowing ? 11 : 9;
-    return { score, label: 'Инверсия через сопротивление', scenario: 'resistance' };
+    return {
+      score,
+      label:    'Инверсия через сопротивление',
+      comment:  'Продавцы стояли стеной, но цена продавила — CVD высокий, тело слабое. Сопротивление поглощено.',
+      scenario: 'resistance',
+    };
   }
 
-  // Возможный хедж: OI растёт, тело крошечное, CVD смешанный
   if (oiGrowing && bodyPct < 20) {
-    return { score: 2, label: 'Возможный хедж', scenario: 'hedge' };
+    return {
+      score:    2,
+      label:    'Возможный хедж',
+      comment:  'OI рос, но цена почти стояла, CVD смешанный. Возможно хеджирование, а не направленная позиция.',
+      scenario: 'hedge',
+    };
   }
 
-  // Пустое движение
   if (Math.abs(cvdPct) < 0.10 && !oiGrowing) {
-    return { score: 2, label: 'Пустое движение', scenario: 'empty' };
+    return {
+      score:    2,
+      label:    'Пустое движение',
+      comment:  'Имбаланс пройден без объёмного и позиционного участия. Ни CVD, ни OI не подтвердили.',
+      scenario: 'empty',
+    };
   }
 
-  // Движение без позиции
   const score = cvdStrong ? 6 : oiGrowing ? 5 : 4;
-  return { score, label: 'Движение без позиции', scenario: 'no_position' };
+  return {
+    score,
+    label:    'Движение без позиции',
+    comment:  'Цена прошла имбаланс при слабом CVD и без прироста позиций. Движение есть, структуры нет.',
+    scenario: 'no_position',
+  };
 }
 
 // ── Блок 5 — Re-Auction (13 pts) ─────────────────────────────
@@ -199,19 +290,21 @@ function _scoreBlock5(mx, det) {
   const { singleCandleInversion, direction } = det;
   const candleCount = fvgCandles.length;
 
-  // Инверсия одной свечой
   if (singleCandleInversion || candleCount === 0) {
     const c   = fvgCandles[0] ?? mx.inv;
     const doi = c?.doi_pct    ?? 0;
     const cvdOk = _cvdWithDir(c?.cvd_sign ?? null, direction);
     const score = doi > 0 && cvdOk ? 7 : doi > 0 ? 5 : 3;
-    return { score, label: 'Инверсия однослайновая — объёмное распределение нерелевантно' };
+    return {
+      score,
+      label:   'Инверсия однослайновая — объёмное распределение нерелевантно',
+      comment: 'Зона пройдена одной свечой — оценить распределение внутри невозможно.',
+    };
   }
 
   const volThreshold = candleCount >= 3 ? 0.50 : 0.70;
   const volStrong    = (fvg_volume_share ?? 0) >= volThreshold;
 
-  // CVD в окне FVG
   let pos = 0, neg = 0;
   for (const c of fvgCandles) {
     if (_cvdWithDir(c.cvd_sign, direction)) pos++;
@@ -224,7 +317,11 @@ function _scoreBlock5(mx, det) {
                 : volStrong                            ? 5
                 : cvdMode === 'confirmed'              ? 4
                 :                                        3;
-    return { score: Math.min(score, 7), label: `1 свеча в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${cvdMode}` };
+    return {
+      score:   Math.min(score, 7),
+      label:   `1 свеча в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${cvdMode}`,
+      comment: _b5Comment(volStrong, cvdMode),
+    };
   }
 
   if (candleCount === 2) {
@@ -236,7 +333,11 @@ function _scoreBlock5(mx, det) {
     else if (!volStrong && eff === 'confirmed')score = 6;
     else if (!volStrong && eff === 'against')  score = 3;
     else                                       score = 5;
-    return { score: Math.min(score, 9), label: `2 свечи в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${eff}` };
+    return {
+      score:   Math.min(score, 9),
+      label:   `2 свечи в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${eff}`,
+      comment: _b5Comment(volStrong, eff),
+    };
   }
 
   // ≥ 3 свечей
@@ -248,7 +349,11 @@ function _scoreBlock5(mx, det) {
   else if (!volStrong && cvdMode === 'neutral')  score =  5;
   else                                           score =  3;
 
-  return { score, label: `${candleCount} свечи в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${cvdMode}` };
+  return {
+    score,
+    label:   `${candleCount} свечи в FVG, объём: ${volStrong ? 'высокий' : 'низкий'}, CVD: ${cvdMode}`,
+    comment: _b5Comment(volStrong, cvdMode),
+  };
 }
 
 // ── Блок 6 — Geometry (8 pts) ────────────────────────────────
@@ -256,11 +361,12 @@ function _scoreBlock6(mx, det) {
   const { oiCandles } = mx;
   const { direction } = det;
 
-  if (!oiCandles || oiCandles.length === 0) return { score: 4, label: 'Нет данных по геометрии', flag: null };
+  if (!oiCandles || oiCandles.length === 0) {
+    return { score: 4, label: 'Нет данных по геометрии', comment: _b6Comment(4, null), flag: null };
+  }
 
   let tailSum = 0, bodySum = 0, n = 0;
   for (const c of oiCandles) {
-    // directional tail risk: для лонга = upper_tail (цена дошла, но не удержалась)
     const tail = direction === 'long' ? (c.upper_tail_pct ?? 0) : (c.lower_tail_pct ?? 0);
     tailSum += tail;
     bodySum += c.body_pct ?? 0;
@@ -272,7 +378,12 @@ function _scoreBlock6(mx, det) {
   const label = `Ср. тело: ${avgBody.toFixed(0)}%, ср. хвост риска: ${avgTail.toFixed(0)}%`;
 
   if (avgTail > 50) {
-    return { score: 2, label: 'Кульминационный хвост: повышен риск глубокого теста', flag: 'high_tail_risk' };
+    return {
+      score:   2,
+      label:   'Кульминационный хвост: повышен риск глубокого теста',
+      comment: _b6Comment(2, 'high_tail_risk'),
+      flag:    'high_tail_risk',
+    };
   }
 
   let score;
@@ -284,12 +395,12 @@ function _scoreBlock6(mx, det) {
   else if (avgTail <= 40)                  score = 3;
   else                                     score = 2;
 
-  return { score, label, flag: null };
+  return { score, label, comment: _b6Comment(score, null), flag: null };
 }
 
 // ── Блок 8 — Skew (7 pts) ────────────────────────────────────
 function _scoreBlock8(det) {
-  const { skew_depth, direction, pivot, inversion, fvg } = det;
+  const { skew_depth, direction, pivot, inversion } = det;
   const stopFlags = [];
 
   if (skew_depth != null && skew_depth > 1.20) {
@@ -301,7 +412,7 @@ function _scoreBlock8(det) {
     if (direction === 'short' && ip > pivot.value) stopFlags.push('implied_price > pivot_high');
   }
   if (stopFlags.length > 0) {
-    return { score: 0, label: 'Аномальный Skew — СТОП', stopFlags };
+    return { score: 0, label: 'Аномальный Skew — СТОП', comment: _b8Comment(0), stopFlags };
   }
 
   const sd = skew_depth ?? 0;
@@ -315,7 +426,7 @@ function _scoreBlock8(det) {
   else if (sd <= 1.20) score = 1;
   else                 score = 0;
 
-  return { score, label: `skew_depth: ${sd.toFixed(3)}`, stopFlags: [] };
+  return { score, label: `skew_depth: ${sd.toFixed(3)}`, comment: _b8Comment(score), stopFlags: [] };
 }
 
 // ── Блок 9 — H1 Snapshot (18 pts) ────────────────────────────
@@ -323,37 +434,73 @@ function _scoreBlock9(mx, direction) {
   const { h1_candle_count, h1_doi_pct, h1_liqshare_pct, h1_limb_pct, h1_cvd_sign } = mx;
 
   if (!h1_candle_count) {
-    return { score: 7, label: 'H1 данные не найдены — нейтральная оценка', stopFlag: false };
+    return {
+      score:    7,
+      label:    'H1 данные не найдены — нейтральная оценка',
+      comment:  'H1 нейтрален — ни значимых ликвидаций, ни уверенного OI. Подтверждения нет.',
+      stopFlag: false,
+    };
   }
 
   const liq = h1_liqshare_pct ?? 0;
   const doi = h1_doi_pct      ?? 0;
 
-  let score, label, stopFlag = false;
+  let score, label, comment, stopFlag = false;
 
   if (liq < 2) {
-    if      (doi >= 0.20) { score = 18; label = 'Чистый рост: новый OI без стопов'; }
-    else if (doi >= 0)    { score = 13; label = 'Слабый рост: OI почти не появился'; }
-    else                  { score =  5; label = 'OI уходит, H1 не поддерживает'; }
+    if (doi >= 0.20) {
+      score = 18; label = 'Чистый рост: новый OI без стопов';
+      comment = 'H1 чистый — новый OI без ликвидаций. Старший таймфрейм полностью подтверждает.';
+    } else if (doi >= 0) {
+      score = 13; label = 'Слабый рост: OI почти не появился';
+      comment = 'Слабый прирост OI без ликвидаций. H1 нейтрален — прямого подтверждения нет.';
+    } else {
+      score = 5; label = 'OI уходит, H1 не поддерживает';
+      comment = 'OI на H1 снижался — старший таймфрейм не поддерживает инверсию.';
+    }
   } else if (liq < 5) {
     if (doi >= 0.20) {
-      if (_limbAgainst(h1_limb_pct, direction)) { score = 14; label = 'Чужие стопы помогли + OI вошёл'; }
-      else                                       { score = 11; label = 'Встряска + OI удержался'; }
-    } else { score = 7; label = 'H1 нейтрален, подтверждения нет'; }
+      if (_limbAgainst(h1_limb_pct, direction)) {
+        score = 14; label = 'Чужие стопы помогли + OI вошёл';
+        comment = 'Ликвидации прошли против инверсии, после чего OI вырос. H1 поддерживает.';
+      } else {
+        score = 11; label = 'Встряска + OI удержался';
+        comment = 'Ликвидации были, но OI удержался. Встряска поглощена.';
+      }
+    } else {
+      score = 7; label = 'H1 нейтрален, подтверждения нет';
+      comment = 'H1 нейтрален — ни значимых ликвидаций, ни уверенного OI. Подтверждения нет.';
+    }
   } else if (liq < 10) {
     if (doi >= 0.20) {
-      if (_limbAgainst(h1_limb_pct, direction)) { score = 13; label = 'Выбитые стопы + новый OI'; }
-      else                                       { score = 11; label = 'Паника в зоне + OI удержался'; }
-    } else if (doi >= 0) { score =  7; label = 'Ликвидации без роста OI'; }
-    else                  { score =  4; label = 'Ликвидации + OI снижается'; }
+      if (_limbAgainst(h1_limb_pct, direction)) {
+        score = 13; label = 'Выбитые стопы + новый OI';
+        comment = 'Ликвидации прошли против инверсии, после чего OI вырос. H1 поддерживает.';
+      } else {
+        score = 11; label = 'Паника в зоне + OI удержался';
+        comment = 'Ликвидации были, но OI удержался. Встряска поглощена.';
+      }
+    } else if (doi >= 0) {
+      score = 7; label = 'Ликвидации без роста OI';
+      comment = 'H1 нейтрален — ни значимых ликвидаций, ни уверенного OI. Подтверждения нет.';
+    } else {
+      score = 4; label = 'Ликвидации + OI снижается';
+      comment = 'Ликвидации без нового OI. Рынок чистился, позиция не набиралась.';
+    }
   } else {
-    if      (doi >= 0.20) { score = 14; label = 'Сильные ликвидации + OI набирается'; }
-    else if (doi >= 0)    { score =  2; label = 'Высокая доля стопов, OI не растёт'; }
-    else                  { score =  0; label = 'Вынос стопов без живого интереса — СТОП'; stopFlag = true; }
+    if (doi >= 0.20) {
+      score = 14; label = 'Сильные ликвидации + OI набирается';
+      comment = 'Ликвидации прошли против инверсии, после чего OI вырос. H1 поддерживает.';
+    } else if (doi >= 0) {
+      score = 2; label = 'Высокая доля стопов, OI не растёт';
+      comment = 'Высокие ликвидации без нового OI. Давление есть, живого интереса нет.';
+    } else {
+      score = 0; label = 'Вынос стопов без живого интереса — СТОП'; stopFlag = true;
+      comment = 'Ликвидации против инверсии без нового OI. H1 прямо противоречит.';
+    }
   }
 
   // CVD уточнение ±2 при пограничных значениях
-  // Нейтральный CVD (0) — не трогаем счёт
   if (h1_cvd_sign !== 0 && score > 0 && score < 18) {
     const borderDoi = doi >= 0.17 && doi < 0.25;
     const borderLiq = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
@@ -363,48 +510,36 @@ function _scoreBlock9(mx, direction) {
     }
   }
 
-  return { score, label, stopFlag };
+  return { score, label, comment, stopFlag };
 }
 
 // ── Стоп-флаги ────────────────────────────────────────────────
 function _stopFlags(b, mx, det) {
   const flags = [];
 
-  // #1: Пустая инверсия
   if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.h1_doi_pct ?? 0) < 0.10) {
     flags.push('Пустая инверсия: нет OI, нет объёма, H1 не подтверждает');
   }
-
-  // #2: Слабый OI без передачи риска
   if ((mx.retention_ratio ?? 1) < 0.15 && (mx.fvg_volume_share ?? 0) < 0.25 && mx.gross_oi > 0) {
     flags.push('Слабый OI без передачи риска');
   }
-
-  // #3: Пустое FVG + слабый ресурс
   if ((mx.fvg_volume_share ?? 0) < 0.15 && (mx.gross_oi ?? 0) < 0.20) {
     flags.push('Пустое FVG + слабый общий ресурс');
   }
-
-  // #4: Аномальный Skew (из Block 8)
   for (const f of (b.block8.stopFlags ?? [])) {
     flags.push(`Аномальный Skew: ${f}`);
   }
-
-  // #5: H1 вынос стопов
   if (b.block9.stopFlag) {
     flags.push('H1: вынос стопов без живого интереса');
   }
-
-  // #6: Все основные блоки провалены (≥ 3 из 4 ниже 30% макс)
   const mainFail = [
-    b.block1.score <= 4,   // ≤ 4/14 ≈ 30%
-    b.block3.score <= 4,   // ≤ 4/13
-    b.block4.score <= 5,   // ≤ 5/16
-    b.block9.score <= 5,   // ≤ 5/18
+    b.block1.score <= 4,
+    b.block3.score <= 4,
+    b.block4.score <= 5,
+    b.block9.score <= 5,
   ].filter(Boolean).length;
   if (mainFail >= 3) flags.push('Все основные блоки провалены');
 
-  // #7: Системная пустота
   if (b.block1.score <= 4 && b.block3.score <= 4 && b.block5.score <= 3 && b.block9.score <= 3) {
     flags.push('Системная пустота');
   }
@@ -412,7 +547,7 @@ function _stopFlags(b, mx, det) {
   return flags;
 }
 
-// ── Красные флаги (не стоп, но в отчёт) ─────────────────────
+// ── Красные флаги ─────────────────────────────────────────────
 function _redFlags(b) {
   const flags = [];
   if (b.block1.score <= 4 && b.block3.score <= 4) {
@@ -473,13 +608,118 @@ function _verdict(total, stopFlags) {
   return 'Не брать';
 }
 
+// ── Итоговое заключение ──────────────────────────────────────
+
+const _MECH_INTRO = {
+  absorption: {
+    strong:   'Крупный участник поглощал рыночные продажи незаметно — CVD давил, цена шла вверх.',
+    working:  'Признаки поглощения — CVD противоречил движению, OI накапливался. Скрытая работа крупного участника.',
+    standard: 'Частичное поглощение — CVD давил, но OI набирался нестабильно.',
+    weak:     'Намёки на поглощение без уверенного набора позиции.',
+  },
+  initiative: {
+    strong:   'Покупатели шли открыто — прямое давление без скрытого поглощения.',
+    working:  'Направленное давление покупателей, CVD и OI в одну сторону.',
+    standard: 'Рыночная инициатива присутствует, но ресурс под ней ограничен.',
+    weak:     'CVD и OI в одну сторону, но накопление слабое.',
+  },
+  resistance: {
+    strong:   'Продавцы сопротивлялись — CVD был высоким, но цена продавила. Сопротивление поглощено с ресурсом.',
+    working:  'Зона прошла через сопротивление продавцов — CVD давил против, но инверсия состоялась.',
+    standard: 'Инверсия через сопротивление — движение было, ресурс под ним умеренный.',
+    weak:     'Цена прошла зону вопреки давлению, OI слабый.',
+  },
+  no_position: {
+    strong:   'Цена прошла имбаланс без явной структуры.',
+    working:  'Цена прошла имбаланс без явной структуры.',
+    standard: 'Инверсия прошла технически, без явного драйвера.',
+    weak:     'Инверсия прошла технически, без явного драйвера.',
+  },
+  empty: {
+    strong:   'Имбаланс пройден без объёмного и позиционного участия.',
+    working:  'Имбаланс пройден без объёмного и позиционного участия.',
+    standard: 'Инверсия прошла технически, без явного драйвера. OI не подтвердил.',
+    weak:     'Инверсия прошла технически, без явного драйвера. OI не подтвердил.',
+  },
+  hedge: {
+    strong:   'OI рос при почти стоячей цене — возможно хеджирование, а не направленная позиция.',
+    working:  'OI рос при почти стоячей цене — возможно хеджирование, а не направленная позиция.',
+    standard: 'OI рос при почти стоячей цене — возможно хеджирование, а не направленная позиция.',
+    weak:     'OI рос при почти стоячей цене — возможно хеджирование, а не направленная позиция.',
+  },
+  no_cvd: {
+    strong:   'CVD данные недоступны — оценка только по OI.',
+    working:  'CVD данные недоступны — оценка только по OI.',
+    standard: 'CVD данные недоступны — оценка только по OI.',
+    weak:     'CVD данные недоступны — оценка только по OI.',
+  },
+};
+
+const _PROB = {
+  'Сильный сетап':        'Вероятность отработки высокая.',
+  'Рабочий сетап':        'Вероятность отработки выше среднего.',
+  'Стандартная инверсия': 'Вероятность отработки умеренная.',
+  'Ослабленная инверсия': 'Вероятность отработки низкая.',
+};
+
+function _buildConclusion(b, det, mx, sc) {
+  if (sc.verdict === 'Не брать') {
+    return 'Инверсия без ресурса — OI слабый, разгрузка прошла, объём не подтвердил зону. Движение есть, но позиции под ним нет. Не брать.';
+  }
+
+  const tierMap = {
+    'Сильный сетап':        'strong',
+    'Рабочий сетап':        'working',
+    'Стандартная инверсия': 'standard',
+    'Ослабленная инверсия': 'weak',
+  };
+  const tier     = tierMap[sc.verdict] || 'standard';
+  const scenario = b.block4.scenario   || 'no_position';
+
+  // Часть 1 — механика
+  const intro = (_MECH_INTRO[scenario] || _MECH_INTRO.no_position)[tier];
+
+  // Часть 2 — что подтверждает + вероятность
+  const oiPart  = b.block1.score >= 10 ? 'OI набран полностью'
+                : b.block1.score >=  7 ? 'OI набран умеренно'
+                : 'OI слабый';
+  const retPart = b.block3.score >= 11 ? 'не разгружался'
+                : b.block3.score >=  7 ? 'разгрузка частичная'
+                : 'разгрузка прошла';
+  const zoneParts = [];
+  if (b.block2.score >= 9) zoneParts.push('зона принята с объёмом');
+  if (b.block5.score >= 8) zoneParts.push('аукцион подтверждён');
+  const confirmStr = [oiPart, retPart, ...zoneParts].join(', ') + '.';
+
+  let h1Str;
+  if      (b.block9.score >= 13) h1Str = 'H1 подтверждает без оговорок.';
+  else if (b.block9.score >= 11) h1Str = 'H1 поддерживает.';
+  else if (b.block9.score >=  8) h1Str = 'H1 нейтрален — подтверждения старшего таймфрейма нет.';
+  else                           h1Str = 'H1 не подтверждает.';
+
+  const prob = _PROB[sc.verdict] || '';
+
+  // Часть 3 — риски по приборам
+  const risks = [];
+  if (b.block8.score <= 3)                              risks.push('skew высокий — implied_price далеко от инверсии, тест вглубь зоны вероятен');
+  if (b.block5.score <= 4)                              risks.push('зона не принята — возможен повторный проход');
+  if (b.block3.score <= 5)                              risks.push('позиция слабо удержана — защиты мало');
+  if (b.block6.flag === 'high_tail_risk')               risks.push('кульминационные хвосты — риск выноса');
+  if (b.block9.score <= 7)                              risks.push('старший таймфрейм не подтверждает');
+  if (['no_position', 'empty'].includes(scenario))      risks.push('механика захвата не работает');
+
+  const riskStr = risks.length === 0
+    ? 'По приборам слабых мест нет.'
+    : 'Риски по приборам: ' + risks.join('; ') + '.';
+
+  const et = sc.expectedTest;
+  const testStr = `При касании ${et.range} — ${et.comment.charAt(0).toLowerCase() + et.comment.slice(1)}.`;
+
+  return `${intro} ${confirmStr} ${h1Str} ${prob} ${riskStr} ${testStr}`.trim();
+}
+
 // ─────────────────────────────────────────────
-// Главная функция блока скоринга.
-// @param {object[]} m15
-// @param {object[]} h1
-// @param {object}   det  — результат detect()
-// @param {object}   mx   — результат computeMetrics()
-// @returns {object}
+// Главная функция скоринга
 // ─────────────────────────────────────────────
 function computeScore(m15, h1, det, mx) {
   const block1 = _scoreBlock1(mx, det);
@@ -496,10 +736,13 @@ function computeScore(m15, h1, det, mx) {
 
   const blocks = { block1, block2, block3, block4, block5, block6, block8, block9, total };
 
-  const stopFlags  = _stopFlags(blocks, mx, det);
-  const redFlags   = _redFlags(blocks);
-  const verdict    = _verdict(total, stopFlags);
+  const stopFlags    = _stopFlags(blocks, mx, det);
+  const redFlags     = _redFlags(blocks);
+  const verdict      = _verdict(total, stopFlags);
   const expectedTest = _expectedTest(blocks, det);
 
-  return { blocks, total, stopFlags, redFlags, verdict, expectedTest };
+  const sc         = { blocks, total, stopFlags, redFlags, verdict, expectedTest };
+  const conclusion = _buildConclusion(blocks, det, mx, sc);
+
+  return { blocks, total, stopFlags, redFlags, verdict, expectedTest, conclusion };
 }

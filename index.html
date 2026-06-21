@@ -85,6 +85,13 @@ function buildReport(sc, det, mx) {
       </div>
     </div>`;
 
+  // ── Итоговое заключение ───────────────────────────────────
+  const conclusionCard = sc.conclusion ? `
+    <div class="rc conclusion-card">
+      <div class="section-title">Аналитическое заключение</div>
+      <p class="conclusion-text">${sc.conclusion}</p>
+    </div>` : '';
+
   // ── Стоп-флаги ────────────────────────────────────────────
   const stopHtml = sc.stopFlags.length > 0 ? `
     <div class="rc flags-card">
@@ -125,6 +132,7 @@ function buildReport(sc, det, mx) {
           <div class="block-bar-fill" style="width:${width}%; background:${color}"></div>
         </div>
         <div class="block-label">${d.label}</div>
+        ${d.comment ? `<div class="block-comment">${d.comment}</div>` : ''}
       </div>`;
   }).join('');
 
@@ -192,7 +200,7 @@ function buildReport(sc, det, mx) {
       ${detailsHtml}
     </div>`;
 
-  return verdictCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard;
+  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard;
 }
 
 // ── Запуск анализа ────────────────────────────────────────────

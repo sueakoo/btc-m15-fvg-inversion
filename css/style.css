@@ -178,7 +178,12 @@ body {
 }
 .block-bar-fill { height: 5px; border-radius: 3px; }
 
-.block-label { font-size: 11px; color: #666; line-height: 1.4; }
+.block-label   { font-size: 11px; color: #666; line-height: 1.4; }
+.block-comment { font-size: 11px; color: #4a4a4a; line-height: 1.5; margin-top: 3px; }
+
+/* ── Conclusion ── */
+.conclusion-card { border-left: 3px solid #333; }
+.conclusion-text { font-size: 13px; color: #b0b0b0; line-height: 1.75; }
 
 /* ── Flags ── */
 .flags-card { }
