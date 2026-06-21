@@ -81,15 +81,46 @@ function chipColor(label, mx, det) {
 function h1LimbHtml(limbPct) {
   if (limbPct == null) return '—';
   const val = limbPct.toFixed(1) + '%';
-  if (limbPct < -5)  return `${val} · <span style="color:#e05555">шортистов</span>`;
-  if (limbPct > 5)   return `${val} · <span style="color:#3fb950">лонгистов</span>`;
+  if (limbPct < -5)  return `${val} · ликвидировали <span style="color:#e05555">шортистов</span>`;
+  if (limbPct > 5)   return `${val} · ликвидировали <span style="color:#3fb950">лонгистов</span>`;
   return val + ' · поровну';
 }
 
 function h1CvdHtml(sign) {
-  if (sign === 1)  return '<span style="color:#3fb950">▲ лонговая агрессия</span>';
-  if (sign === -1) return '<span style="color:#e05555">▼ шортовая агрессия</span>';
+  if (sign === 1)  return '<span style="color:#3fb950">▲ суммарная лонговая агрессия</span>';
+  if (sign === -1) return '<span style="color:#e05555">▼ суммарная шортовая агрессия</span>';
   return '— нейтрально';
+}
+
+function skewHint(sd) {
+  if (sd == null) return null;
+  if (sd <= 0)    return 'implied_price выше инверсии';
+  if (sd < 0.15)  return 'implied_price у верхней границы';
+  if (sd < 0.33)  return 'тест верхней части зоны';
+  if (sd < 0.50)  return 'тест середины зоны';
+  if (sd < 0.75)  return 'тест нижней части зоны';
+  if (sd < 1.00)  return 'тест нижней границы зоны';
+  if (sd < 1.20)  return 'тест ниже зоны вероятен';
+  return 'за пределами зоны — стоп';
+}
+
+function oiZoneHtml(below, fvg, inv, pctFn) {
+  const cell = (lbl, val, col) => {
+    const w = Math.min(100, Math.round((val ?? 0) * 100));
+    return `<div class="oi-zone-cell">
+      <div class="oi-zone-cell-label">${lbl}</div>
+      <div class="oi-zone-cell-value" style="color:${col}">${pctFn(val)}</div>
+      <div class="oi-zone-mini-bar"><div class="oi-zone-mini-fill" style="width:${w}%;background:${col}"></div></div>
+    </div>`;
+  };
+  return `<div class="oi-zone-block">
+    <div class="oi-zone-title">OI по зонам</div>
+    <div class="oi-zone-grid">
+      ${cell('перед FVG', below, '#3fb950')}
+      ${cell('внутри FVG', fvg,  '#d4a017')}
+      ${cell('инверсия',   inv,  '#888')}
+    </div>
+  </div>`;
 }
 
 // ── Построение отчёта ─────────────────────────────────────────
@@ -187,7 +218,7 @@ function buildReport(sc, det, mx) {
     <div class="rc" style="border-left: 3px solid ${testColor}">
       <div class="section-title">Ожидаемый тест</div>
       <div class="test-level" style="color:${testColor}">${et.level}</div>
-      <div class="test-range">${et.range}</div>
+      <div class="test-range" style="color:${testColor}">${et.range}</div>
       <div class="test-comment">${et.comment}</div>
     </div>`;
 
@@ -199,7 +230,7 @@ function buildReport(sc, det, mx) {
     { label:'retention',   sub:'удержание позиции',             value: pctStr(mx.retention_ratio)   },
     { label:'↓+FVG zone',  sub:'OI ниже точки инверсии',       value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
     { label:'FVG vol',     sub:'объём внутри зоны',             value: pctStr(mx.fvg_volume_share)  },
-    { label:'skew depth',  sub:'отрыв позиции от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—' },
+    { label:'skew depth',  sub:'отрыв implied_price от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—', hint: skewHint(det.skew_depth) },
     { label:'H1 OI',       sub:'прирост позиций на H1',         value: mx.h1_doi_pct + '%'          },
     { label:'H1 liqshare', sub:'доля ликвидаций от объёма H1', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
     { label:'длина хода',  sub:'свечей от пивота до инверсии', value: mx.oi_window_count + ' св.'  },
@@ -211,6 +242,7 @@ function buildReport(sc, det, mx) {
       <div class="metric-chip-label">${m.label}</div>
       <div class="metric-chip-sub">${m.sub}</div>
       <div class="metric-chip-value" ${c ? `style="color:${c}"` : ''}>${m.value}</div>
+      ${m.hint ? `<div class="metric-chip-hint">${m.hint}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -221,27 +253,30 @@ function buildReport(sc, det, mx) {
     </div>`;
 
   // ── Параметры ─────────────────────────────────────────────
-  const rows = [
-    ['FVG',           null,                         `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}`],
-    ['Инверсия',      null,                         `${det.inversion.ts} · close ${det.inversion.close}`],
-    ['Pivot',         null,                         `${det.pivot.ts} · ${det.pivot.value}`],
-    ['implied_price', 'цена расположения OI',       det.inversion.implied_price ?? '—'],
-    ['imb_range',     'глубина имбаланса',          det.fvg.imb_range_pct + '%'],
-    ['share ↓',       'OI набран перед FVG',        pctStr(mx.share_below)],
-    ['share FVG',     'OI набран внутри FVG',       pctStr(mx.share_fvg)],
-    ['share inv',     'OI на свече инверсии',       pctStr(mx.share_inv)],
-    ['H1 limb',       'сторона ликвидаций H1',      h1LimbHtml(mx.h1_limb_pct)],
-    ['H1 CVD',        null,                         h1CvdHtml(mx.h1_cvd_sign)],
-  ];
-  const detailsHtml = rows.map(([k, sub, v]) =>
+  const renderRow = ([k, sub, v]) =>
     `<div class="detail-row">
       <div class="detail-key-group">
         <span class="detail-key">${k}</span>
         ${sub ? `<span class="detail-subtitle">${sub}</span>` : ''}
       </div>
       <span class="detail-val">${v}</span>
-    </div>`
-  ).join('');
+    </div>`;
+
+  const rowsBefore = [
+    ['FVG',           null,                   `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}`],
+    ['Инверсия',      null,                   `${det.inversion.ts} · close ${det.inversion.close}`],
+    ['Pivot',         null,                   `${det.pivot.ts} · ${det.pivot.value}`],
+    ['implied_price', 'цена расположения OI', det.inversion.implied_price ?? '—'],
+    ['imb_range',     'глубина имбаланса',    det.fvg.imb_range_pct + '%'],
+  ];
+  const rowsAfter = [
+    ['H1 limb', 'сторона ликвидаций H1', h1LimbHtml(mx.h1_limb_pct)],
+    ['H1 CVD',  null,                    h1CvdHtml(mx.h1_cvd_sign)],
+  ];
+  const detailsHtml =
+    rowsBefore.map(renderRow).join('') +
+    oiZoneHtml(mx.share_below, mx.share_fvg, mx.share_inv, pctStr) +
+    rowsAfter.map(renderRow).join('');
 
   const detailsCard = `
     <div class="rc">
