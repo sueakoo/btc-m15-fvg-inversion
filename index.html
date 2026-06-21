@@ -54,6 +54,44 @@ function scoreColor(score, max) {
   return '#c0392b';
 }
 
+const TEST_COLORS = {
+  'Мелкий':       '#2ea043',
+  'Средний':      '#d4a017',
+  'Глубокий':     '#e38a11',
+  'К Pivot':      '#c0392b',
+  'Риск провала': '#c0392b',
+};
+
+function chipColor(label, mx, det) {
+  const g = mx.gross_oi ?? 0;
+  const n = mx.net_oi   ?? 0;
+  const r = (mx.retention_ratio ?? 1) * 100;
+  const s = det.skew_depth ?? 0;
+  const h = mx.h1_doi_pct ?? 0;
+  const l = mx.h1_liqshare_pct ?? 0;
+  if (label === 'gross OI')    return g < 0.20 ? '#e05555' : null;
+  if (label === 'net OI')      return n < 0.10 ? '#e05555' : n < 0.20 ? '#d4a017' : null;
+  if (label === 'retention')   return r < 15   ? '#e05555' : r < 40   ? '#d4a017' : null;
+  if (label === 'skew depth')  return s > 1.20 ? '#e05555' : s >= 0.75 ? '#d4a017' : null;
+  if (label === 'H1 OI')       return h < 0    ? '#e05555' : h < 0.10  ? '#d4a017' : null;
+  if (label === 'H1 liqshare') return l >= 10  ? '#e05555' : l >= 5    ? '#d4a017' : null;
+  return null;
+}
+
+function h1LimbHtml(limbPct) {
+  if (limbPct == null) return '—';
+  const val = limbPct.toFixed(1) + '%';
+  if (limbPct < -5)  return `${val} · <span style="color:#e05555">шортистов</span>`;
+  if (limbPct > 5)   return `${val} · <span style="color:#3fb950">лонгистов</span>`;
+  return val + ' · поровну';
+}
+
+function h1CvdHtml(sign) {
+  if (sign === 1)  return '<span style="color:#3fb950">▲ лонговая агрессия</span>';
+  if (sign === -1) return '<span style="color:#e05555">▼ шортовая агрессия</span>';
+  return '— нейтрально';
+}
+
 // ── Построение отчёта ─────────────────────────────────────────
 function buildReport(sc, det, mx) {
   const vColor = VERDICT_COLORS[sc.verdict] || '#888';
@@ -144,10 +182,11 @@ function buildReport(sc, det, mx) {
 
   // ── Ожидаемый тест ────────────────────────────────────────
   const et = sc.expectedTest;
+  const testColor = TEST_COLORS[et.level] || '#555';
   const testCard = `
-    <div class="rc">
+    <div class="rc" style="border-left: 3px solid ${testColor}">
       <div class="section-title">Ожидаемый тест</div>
-      <div class="test-level">${et.level}</div>
+      <div class="test-level" style="color:${testColor}">${et.level}</div>
       <div class="test-range">${et.range}</div>
       <div class="test-comment">${et.comment}</div>
     </div>`;
@@ -165,12 +204,15 @@ function buildReport(sc, det, mx) {
     { label:'H1 liqshare', sub:'доля ликвидаций от объёма H1', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
     { label:'длина хода',  sub:'свечей от пивота до инверсии', value: mx.oi_window_count + ' св.'  },
   ];
-  const metricsHtml = metrics.map(m => `
+  const metricsHtml = metrics.map(m => {
+    const c = chipColor(m.label, mx, det);
+    return `
     <div class="metric-chip">
       <div class="metric-chip-label">${m.label}</div>
       <div class="metric-chip-sub">${m.sub}</div>
-      <div class="metric-chip-value">${m.value}</div>
-    </div>`).join('');
+      <div class="metric-chip-value" ${c ? `style="color:${c}"` : ''}>${m.value}</div>
+    </div>`;
+  }).join('');
 
   const metricsCard = `
     <div class="rc">
@@ -188,8 +230,8 @@ function buildReport(sc, det, mx) {
     ['share ↓',       'OI набран перед FVG',        pctStr(mx.share_below)],
     ['share FVG',     'OI набран внутри FVG',       pctStr(mx.share_fvg)],
     ['share inv',     'OI на свече инверсии',       pctStr(mx.share_inv)],
-    ['H1 limb',       'сторона ликвидаций H1',      mx.h1_limb_pct != null ? mx.h1_limb_pct.toFixed(1) + '%' : '—'],
-    ['H1 CVD',        null,                         mx.h1_cvd_sign === 1 ? '▲ лонговая агрессия' : mx.h1_cvd_sign === -1 ? '▼ шортовая агрессия' : '— нейтрально'],
+    ['H1 limb',       'сторона ликвидаций H1',      h1LimbHtml(mx.h1_limb_pct)],
+    ['H1 CVD',        null,                         h1CvdHtml(mx.h1_cvd_sign)],
   ];
   const detailsHtml = rows.map(([k, sub, v]) =>
     `<div class="detail-row">
