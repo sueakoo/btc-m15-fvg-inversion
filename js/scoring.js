@@ -136,10 +136,17 @@ function _scoreBlock4(mx, det) {
   const clvPct    = inv.clv_pct    ?? 0;
   const cvdPct    = inv.cvd_pct    ?? 0;
   const cvdSign   = inv.cvd_sign   ?? null;
-  const cvdSmall  = inv.cvd_small  ?? true;
+  const cvdSmall  = inv.cvd_small  ?? false;
   const doiPct    = inv.doi_pct    ?? 0;
 
   const oiGrowing  = doiPct > 0;
+
+  // Если CVD данных нет вообще — не угадываем сценарий, честно говорим об этом
+  if (cvdSign == null) {
+    const score = oiGrowing ? 5 : 3;
+    return { score, label: 'CVD данные отсутствуют — оценка по OI', scenario: 'no_cvd' };
+  }
+
   const strongBody = bodyPct >= 50 && Math.abs(clvPct) >= 60;
   const cvdWithDir = _cvdWithDir(cvdSign, direction);
   const cvdAgainst = direction === 'long'
@@ -346,11 +353,12 @@ function _scoreBlock9(mx, direction) {
   }
 
   // CVD уточнение ±2 при пограничных значениях
+  // Нейтральный CVD (0) — не трогаем счёт
   if (h1_cvd_sign !== 0 && score > 0 && score < 18) {
-    const borderDoi  = doi >= 0.17 && doi < 0.25;
-    const borderLiq  = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
+    const borderDoi = doi >= 0.17 && doi < 0.25;
+    const borderLiq = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
     if (borderDoi || borderLiq) {
-      const cvdBonus = _cvdWithDir(h1_cvd_sign === 1 ? 'positive' : 'negative', direction) ? 2 : -2;
+      const cvdBonus = _cvdWithDir(h1_cvd_sign, direction) ? 2 : -2;
       score = Math.max(0, Math.min(18, score + cvdBonus));
     }
   }
