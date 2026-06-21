@@ -155,19 +155,20 @@ function buildReport(sc, det, mx) {
   // ── Метрики ───────────────────────────────────────────────
   const pctStr = v => v != null ? (v * 100).toFixed(1) + '%' : '—';
   const metrics = [
-    { label:'gross OI',    value: mx.gross_oi  + '%'           },
-    { label:'net OI',      value: mx.net_oi    + '%'           },
-    { label:'retention',   value: pctStr(mx.retention_ratio)   },
-    { label:'↓+FVG zone',  value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
-    { label:'FVG vol',     value: pctStr(mx.fvg_volume_share)  },
-    { label:'skew depth',  value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—' },
-    { label:'H1 OI',       value: mx.h1_doi_pct + '%'          },
-    { label:'H1 liqshare', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
-    { label:'OI window',   value: mx.oi_window_count + ' св.'  },
+    { label:'gross OI',    sub:'объём набранных позиций',       value: mx.gross_oi  + '%'           },
+    { label:'net OI',      sub:'чистый остаток OI',             value: mx.net_oi    + '%'           },
+    { label:'retention',   sub:'удержание позиции',             value: pctStr(mx.retention_ratio)   },
+    { label:'↓+FVG zone',  sub:'OI ниже точки инверсии',       value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
+    { label:'FVG vol',     sub:'объём внутри зоны',             value: pctStr(mx.fvg_volume_share)  },
+    { label:'skew depth',  sub:'отрыв позиции от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—' },
+    { label:'H1 OI',       sub:'прирост позиций на H1',         value: mx.h1_doi_pct + '%'          },
+    { label:'H1 liqshare', sub:'доля ликвидаций от объёма H1', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
+    { label:'длина хода',  sub:'свечей от пивота до инверсии', value: mx.oi_window_count + ' св.'  },
   ];
   const metricsHtml = metrics.map(m => `
     <div class="metric-chip">
       <div class="metric-chip-label">${m.label}</div>
+      <div class="metric-chip-sub">${m.sub}</div>
       <div class="metric-chip-value">${m.value}</div>
     </div>`).join('');
 
@@ -179,19 +180,25 @@ function buildReport(sc, det, mx) {
 
   // ── Параметры ─────────────────────────────────────────────
   const rows = [
-    ['FVG',           `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}`],
-    ['Инверсия',      `${det.inversion.ts} · close ${det.inversion.close}`],
-    ['Pivot',         `${det.pivot.ts} · ${det.pivot.value}`],
-    ['implied_price', det.inversion.implied_price ?? '—'],
-    ['imb_range',     det.fvg.imb_range_pct + '%'],
-    ['share ↓',       pctStr(mx.share_below)],
-    ['share FVG',     pctStr(mx.share_fvg)],
-    ['share inv',     mx.share_inv],
-    ['H1 limb',       mx.h1_limb_pct != null ? mx.h1_limb_pct.toFixed(1) + '%' : '—'],
-    ['H1 CVD',        mx.h1_cvd_sign === 1 ? '▲ positive' : mx.h1_cvd_sign === -1 ? '▼ negative' : '— neutral'],
+    ['FVG',           null,                         `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}`],
+    ['Инверсия',      null,                         `${det.inversion.ts} · close ${det.inversion.close}`],
+    ['Pivot',         null,                         `${det.pivot.ts} · ${det.pivot.value}`],
+    ['implied_price', 'цена расположения OI',       det.inversion.implied_price ?? '—'],
+    ['imb_range',     'глубина имбаланса',          det.fvg.imb_range_pct + '%'],
+    ['share ↓',       'OI набран перед FVG',        pctStr(mx.share_below)],
+    ['share FVG',     'OI набран внутри FVG',       pctStr(mx.share_fvg)],
+    ['share inv',     'OI на свече инверсии',       pctStr(mx.share_inv)],
+    ['H1 limb',       'сторона ликвидаций H1',      mx.h1_limb_pct != null ? mx.h1_limb_pct.toFixed(1) + '%' : '—'],
+    ['H1 CVD',        null,                         mx.h1_cvd_sign === 1 ? '▲ лонговая агрессия' : mx.h1_cvd_sign === -1 ? '▼ шортовая агрессия' : '— нейтрально'],
   ];
-  const detailsHtml = rows.map(([k, v]) =>
-    `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`
+  const detailsHtml = rows.map(([k, sub, v]) =>
+    `<div class="detail-row">
+      <div class="detail-key-group">
+        <span class="detail-key">${k}</span>
+        ${sub ? `<span class="detail-subtitle">${sub}</span>` : ''}
+      </div>
+      <span class="detail-val">${v}</span>
+    </div>`
   ).join('');
 
   const detailsCard = `

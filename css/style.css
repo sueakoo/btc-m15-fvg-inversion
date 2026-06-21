@@ -179,7 +179,7 @@ body {
 .block-bar-fill { height: 5px; border-radius: 3px; }
 
 .block-label   { font-size: 11px; color: #666; line-height: 1.4; }
-.block-comment { font-size: 11px; color: #4a4a4a; line-height: 1.5; margin-top: 3px; }
+.block-comment { font-size: 11px; color: #777; line-height: 1.5; margin-top: 3px; }
 
 /* ── Conclusion ── */
 .conclusion-card { border-left: 3px solid #333; }
@@ -224,11 +224,16 @@ body {
 .detail-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   padding: 6px 0;
   border-bottom: 1px solid #1a1a1a;
   gap: 12px;
 }
 .detail-row:last-child { border-bottom: none; }
+.detail-key-group { display: flex; flex-direction: column; gap: 1px; }
 .detail-key { font-size: 11px; color: #555; white-space: nowrap; }
-.detail-val { font-size: 12px; color: #aaa; text-align: right; font-variant-numeric: tabular-nums; }
+.detail-subtitle { font-size: 9px; color: #353535; letter-spacing: 0.1px; }
+.detail-val { font-size: 12px; color: #aaa; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ── Metric chip subtitle ── */
+.metric-chip-sub { font-size: 9px; color: #353535; margin-top: 1px; line-height: 1.3; }
