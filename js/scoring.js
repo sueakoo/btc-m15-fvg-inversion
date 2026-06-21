@@ -16,9 +16,12 @@ function _volQuality(mx) {
 }
 
 // CVD совпадает с направлением инверсии?
+// Принимает cvd_sign как число (1/-1) или строку ('positive'/'negative')
 function _cvdWithDir(cvdSign, direction) {
-  if (direction === 'long')  return cvdSign === 'positive';
-  if (direction === 'short') return cvdSign === 'negative';
+  const isPos = cvdSign === 1 || cvdSign === 'positive';
+  const isNeg = cvdSign === -1 || cvdSign === 'negative';
+  if (direction === 'long')  return isPos;
+  if (direction === 'short') return isNeg;
   return false;
 }
 
@@ -139,7 +142,9 @@ function _scoreBlock4(mx, det) {
   const oiGrowing  = doiPct > 0;
   const strongBody = bodyPct >= 50 && Math.abs(clvPct) >= 60;
   const cvdWithDir = _cvdWithDir(cvdSign, direction);
-  const cvdAgainst = direction === 'long' ? cvdSign === 'negative' : cvdSign === 'positive';
+  const cvdAgainst = direction === 'long'
+    ? (cvdSign === -1 || cvdSign === 'negative')
+    : (cvdSign ===  1 || cvdSign === 'positive');
   const cvdStrong  = !cvdSmall && Math.abs(cvdPct) >= 0.30;
   const cvdNeutral = cvdSmall || Math.abs(cvdPct) < 0.10;
 
