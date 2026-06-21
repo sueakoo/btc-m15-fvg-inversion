@@ -156,7 +156,7 @@ function _scoreBlock3(mx) {
 
   if (gross === 0) return { score: 0, label: 'Нет нового OI', comment: _b3Comment(0, false), transfer: false };
 
-  if (net < 0.20 && gross >= 0.40 && fvgVol >= 0.35) {
+  if (net >= 0 && net < 0.20 && gross >= 0.40 && fvgVol >= 0.35) {
     return { score: 9, label: 'Передача риска: высокая активность при слабом чистом OI', comment: _b3Comment(9, true), transfer: true };
   }
 
@@ -222,19 +222,19 @@ function _scoreBlock4(mx, det) {
   const cvdStrong  = !cvdSmall && Math.abs(cvdPct) >= 0.30;
   const cvdNeutral = cvdSmall || Math.abs(cvdPct) < 0.10;
 
-  if ((cvdAgainst || cvdNeutral) && oiGrowing && !cvdWithDir) {
-    const score = cvdAgainst && cvdStrong && strongBody ? 16
-                : cvdAgainst && cvdStrong               ? 15
-                : strongBody                            ? 14
-                :                                         13;
+  // Инверсия через сопротивление: сильный CVD в сторону + слабое тело
+  // Проверяем ДО "Рыночной инициативы" — иначе та перехватывает все cvdWithDir+oiGrowing
+  if (bodyPct < 35 && cvdStrong && cvdWithDir) {
+    const score = oiGrowing ? 11 : 9;
     return {
       score,
-      label:    'Лимитное поглощение',
-      comment:  'Лимитный покупатель поглощал продажи — CVD давил, но цена шла вверх. Крупный участник скрытно набирал позицию.',
-      scenario: 'absorption',
+      label:    'Инверсия через сопротивление',
+      comment:  'Продавцы стояли стеной, но цена продавила — CVD высокий, тело слабое. Сопротивление поглощено.',
+      scenario: 'resistance',
     };
   }
 
+  // Рыночная инициатива: CVD в сторону + OI растёт (тело нормальное)
   if (cvdWithDir && oiGrowing) {
     const score = strongBody && cvdStrong ? 13
                 : strongBody              ? 12
@@ -247,17 +247,9 @@ function _scoreBlock4(mx, det) {
     };
   }
 
-  if (bodyPct < 35 && cvdStrong && cvdWithDir) {
-    const score = oiGrowing ? 11 : 9;
-    return {
-      score,
-      label:    'Инверсия через сопротивление',
-      comment:  'Продавцы стояли стеной, но цена продавила — CVD высокий, тело слабое. Сопротивление поглощено.',
-      scenario: 'resistance',
-    };
-  }
-
-  if (oiGrowing && bodyPct < 20) {
+  // Возможный хедж: OI растёт, тело крошечное, CVD нейтральный (НЕ против)
+  // Проверяем ДО поглощения — иначе cvdNeutral+oiGrowing уходит туда
+  if (oiGrowing && bodyPct < 20 && cvdNeutral && !cvdAgainst) {
     return {
       score:    2,
       label:    'Возможный хедж',
@@ -266,6 +258,21 @@ function _scoreBlock4(mx, det) {
     };
   }
 
+  // Лимитное поглощение: CVD против или нейтрал + OI растёт
+  if ((cvdAgainst || cvdNeutral) && oiGrowing) {
+    const score = cvdAgainst && cvdStrong && strongBody ? 16
+                : cvdAgainst && cvdStrong               ? 15
+                : strongBody                            ? 14
+                :                                         13;
+    return {
+      score,
+      label:    'Лимитное поглощение',
+      comment:  'Лимитный покупатель поглощал продажи — CVD давил, но цена шла вверх. Крупный участник скрытно набирал позицию.',
+      scenario: 'absorption',
+    };
+  }
+
+  // Пустое движение: нет CVD, нет OI
   if (Math.abs(cvdPct) < 0.10 && !oiGrowing) {
     return {
       score:    2,
@@ -275,6 +282,7 @@ function _scoreBlock4(mx, det) {
     };
   }
 
+  // Движение без позиции (fallback)
   const score = cvdStrong ? 6 : oiGrowing ? 5 : 4;
   return {
     score,
@@ -415,7 +423,10 @@ function _scoreBlock8(det) {
     return { score: 0, label: 'Аномальный Skew — СТОП', comment: _b8Comment(0), stopFlags };
   }
 
-  const sd = skew_depth ?? 0;
+  if (skew_depth == null) {
+    return { score: 4, label: 'implied_price отсутствует — нейтральная оценка', comment: _b8Comment(4), stopFlags: [] };
+  }
+  const sd = skew_depth;
   let score;
   if      (sd <= 0.00) score = 7;
   else if (sd <= 0.15) score = 6;
@@ -507,6 +518,9 @@ function _scoreBlock9(mx, direction) {
     if (borderDoi || borderLiq) {
       const cvdBonus = _cvdWithDir(h1_cvd_sign, direction) ? 2 : -2;
       score = Math.max(0, Math.min(18, score + cvdBonus));
+      comment += cvdBonus > 0
+        ? ' H1 CVD подтверждает — скорректировано вверх.'
+        : ' H1 CVD против — скорректировано вниз.';
     }
   }
 
@@ -520,10 +534,10 @@ function _stopFlags(b, mx, det) {
   if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.h1_doi_pct ?? 0) < 0.10) {
     flags.push('Пустая инверсия: нет OI, нет объёма, H1 не подтверждает');
   }
-  if ((mx.retention_ratio ?? 1) < 0.15 && (mx.fvg_volume_share ?? 0) < 0.25 && mx.gross_oi > 0) {
+  if ((mx.retention_ratio ?? 0) < 0.15 && (mx.fvg_volume_share ?? 0) < 0.25 && mx.gross_oi > 0) {
     flags.push('Слабый OI без передачи риска');
   }
-  if ((mx.fvg_volume_share ?? 0) < 0.15 && (mx.gross_oi ?? 0) < 0.20) {
+  if ((mx.fvg_volume_share ?? 0) < 0.15 && (mx.gross_oi ?? 0) >= 0.05 && (mx.gross_oi ?? 0) < 0.20) {
     flags.push('Пустое FVG + слабый общий ресурс');
   }
   for (const f of (b.block8.stopFlags ?? [])) {
@@ -588,11 +602,16 @@ function _expectedTest(b, det) {
     lo      = Math.round(lower_fvg - fvgSize * 0.5);
     hi      = Math.round(lower_fvg);
     comment = 'Ожидается тест нижней границы и ниже FVG';
-  } else {
+  } else if (total >= 30) {
     level   = 'К Pivot';
     lo      = Math.round(pivotVal);
     hi      = Math.round(lower_fvg);
     comment = 'Риск глубокого ретеста к уровню Pivot';
+  } else {
+    level   = 'Риск провала';
+    lo      = Math.round(pivotVal - fvgSize);
+    hi      = Math.round(pivotVal);
+    comment = 'Ресурса нет — ожидается провал ниже Pivot';
   }
 
   return { level, range: `${lo} – ${hi}`, comment };
