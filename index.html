@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTC M15 FVG Inversion</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <h1>BTC M15 FVG Inversion Analyzer</h1>
+    <p>Вставьте данные свечей из X-RAY и нажмите Анализ</p>
+  </div>
+
+  <div class="input-grid">
+    <div class="input-block">
+      <label>M15 свечи</label>
+      <textarea id="m15Input" placeholder="ts: 15.06.2026 17:15&#10;exchange: Binance&#10;symbol: BTCUSDT Perp&#10;tf: 15m&#10;open: 75635.60&#10;high: 75680.10&#10;low: 75590.20&#10;close: 75660.40&#10;..."></textarea>
+    </div>
+    <div class="input-block">
+      <label>H1 свечи</label>
+      <textarea id="h1Input" placeholder="ts: 15.06.2026 17:00&#10;exchange: Binance&#10;symbol: BTCUSDT Perp&#10;tf: 1h&#10;open: 75500.00&#10;..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn-analyze" onclick="runAnalysis()">Анализ</button>
+
+  <div class="errors" id="errors"></div>
+
+  <div class="report" id="report">
+    <div class="debug-out" id="debugOut"></div>
+  </div>
+
+</div>
+
+<script src="js/parser.js"></script>
+<script>
+  function runAnalysis() {
+    const m15Text = document.getElementById('m15Input').value;
+    const h1Text  = document.getElementById('h1Input').value;
+
+    const errorsEl = document.getElementById('errors');
+    const reportEl = document.getElementById('report');
+    const debugEl  = document.getElementById('debugOut');
+
+    errorsEl.classList.remove('visible');
+    reportEl.classList.remove('visible');
+
+    const result = parseInput(m15Text, h1Text);
+
+    if (result.errors.length > 0) {
+      errorsEl.innerHTML = result.errors.map(e => `<p>⚠ ${e}</p>`).join('');
+      errorsEl.classList.add('visible');
+      return;
+    }
+
+    // Debug: show parsed candles as JSON until analysis blocks are built
+    const out = {
+      m15_count: result.m15.length,
+      h1_count: result.h1.length,
+      m15: result.m15,
+      h1: result.h1
+    };
+
+    debugEl.textContent = JSON.stringify(out, null, 2);
+    reportEl.classList.add('visible');
+  }
+</script>
+
+</body>
+</html>
