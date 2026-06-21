@@ -17,21 +17,18 @@
   <div class="input-grid">
     <div class="input-block">
       <label>M15 свечи</label>
-      <textarea id="m15Input" placeholder="ts: 15.06.2026 17:15&#10;exchange: Binance&#10;symbol: BTCUSDT Perp&#10;tf: 15m&#10;open: 75635.60&#10;high: 75680.10&#10;low: 75590.20&#10;close: 75660.40&#10;..."></textarea>
+      <textarea id="m15Input" placeholder="ts: 15.06.2026 17:15&#10;open: 75635.60&#10;high: 75680.10&#10;low: 75590.20&#10;close: 75660.40&#10;doi_pct: 0.14%&#10;..."></textarea>
     </div>
     <div class="input-block">
       <label>H1 свечи</label>
-      <textarea id="h1Input" placeholder="ts: 15.06.2026 17:00&#10;exchange: Binance&#10;symbol: BTCUSDT Perp&#10;tf: 1h&#10;open: 75500.00&#10;..."></textarea>
+      <textarea id="h1Input" placeholder="ts: 15.06.2026 17:00&#10;open: 75500.00&#10;doi_pct: 0.22%&#10;liqshare_pct: 3.5%&#10;..."></textarea>
     </div>
   </div>
 
   <button class="btn-analyze" onclick="runAnalysis()">Анализ</button>
 
   <div class="errors" id="errors"></div>
-
-  <div class="report" id="report">
-    <div class="debug-out" id="debugOut"></div>
-  </div>
+  <div class="report" id="report"></div>
 
 </div>
 
@@ -40,73 +37,196 @@
 <script src="js/metrics.js"></script>
 <script src="js/scoring.js"></script>
 <script>
-  function runAnalysis() {
-    const m15Text = document.getElementById('m15Input').value;
-    const h1Text  = document.getElementById('h1Input').value;
 
-    const errorsEl = document.getElementById('errors');
-    const reportEl = document.getElementById('report');
-    const debugEl  = document.getElementById('debugOut');
+// ── Цвета ─────────────────────────────────────────────────────
+const VERDICT_COLORS = {
+  'Сильный сетап':       '#2ea043',
+  'Рабочий сетап':       '#3fb950',
+  'Стандартная инверсия':'#d4a017',
+  'Ослабленная инверсия':'#e38a11',
+  'Не брать':            '#c0392b',
+};
 
-    errorsEl.classList.remove('visible');
-    reportEl.classList.remove('visible');
+function scoreColor(score, max) {
+  const p = score / max;
+  if (p >= 0.70) return '#2ea043';
+  if (p >= 0.40) return '#d4a017';
+  return '#c0392b';
+}
 
-    const parsed = parseInput(m15Text, h1Text);
+// ── Построение отчёта ─────────────────────────────────────────
+function buildReport(sc, det, mx) {
+  const vColor = VERDICT_COLORS[sc.verdict] || '#888';
+  const b      = sc.blocks;
 
-    if (parsed.errors.length > 0) {
-      errorsEl.innerHTML = parsed.errors.map(e => `<p>⚠ ${e}</p>`).join('');
-      errorsEl.classList.add('visible');
-      return;
-    }
+  // Направление
+  const dirClass = det.direction === 'long' ? 'badge-long' : 'badge-short';
+  const dirText  = det.direction === 'long' ? 'LONG' : 'SHORT';
 
-    const det = detect(parsed.m15);
+  // FVG размер
+  const fvgSize = det.fvg.imb_range_pct < 0.15 ? 'малый'
+                : det.fvg.imb_range_pct <= 0.40 ? 'средний' : 'большой';
 
-    if (!det.ok) {
-      errorsEl.innerHTML = det.errors.map(e => `<p>⚠ ${e}</p>`).join('');
-      errorsEl.classList.add('visible');
-      return;
-    }
+  // ── Карточка вердикта ─────────────────────────────────────
+  const verdictCard = `
+    <div class="rc verdict-card" style="border-left-color: ${vColor}">
+      <div class="score-row">
+        <div class="score-num">${sc.total}<span class="score-denom">/100</span></div>
+        <div class="verdict-label" style="color: ${vColor}">${sc.verdict}</div>
+      </div>
+      <div class="total-bar-track">
+        <div class="total-bar-fill" style="width: ${sc.total}%; background: ${vColor}"></div>
+      </div>
+      <div class="meta-row">
+        <span class="badge ${dirClass}">${dirText}</span>
+        <span class="meta-tag">FVG <b>${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}</b> · ${det.fvg.imb_range_pct}% (${fvgSize})</span>
+        <span class="meta-tag">Pivot <b>${det.pivot.value}</b></span>
+        <span class="meta-tag">Инверсия <b>${det.inversion.close}</b></span>
+      </div>
+    </div>`;
 
-    const mx  = computeMetrics(parsed.m15, parsed.h1, det);
-    const sc  = computeScore(parsed.m15, parsed.h1, det, mx);
+  // ── Стоп-флаги ────────────────────────────────────────────
+  const stopHtml = sc.stopFlags.length > 0 ? `
+    <div class="rc flags-card">
+      <div class="section-title">Стоп-флаги</div>
+      ${sc.stopFlags.map(f => `<div class="flag-item flag-stop">⛔ ${f}</div>`).join('')}
+    </div>` : '';
 
-    const b = sc.blocks;
-    const out = {
-      '═══ ИТОГ ═══':         null,
-      ВЕРДИКТ:                sc.verdict,
-      БАЛЛ:                   `${sc.total} / 100`,
-      стоп_флаги:             sc.stopFlags,
-      красные_флаги:          sc.redFlags,
-      ожидаемый_тест:         `${sc.expectedTest.level} — ${sc.expectedTest.range}`,
+  // ── Красные флаги ─────────────────────────────────────────
+  const redHtml = sc.redFlags.length > 0 ? `
+    <div class="rc flags-card">
+      <div class="section-title">Предупреждения</div>
+      ${sc.redFlags.map(f => `<div class="flag-item flag-red">⚠ ${f}</div>`).join('')}
+    </div>` : '';
 
-      '─── БЛОКИ ───':        null,
-      'Б1 Energy':            `${b.block1.score}/14  ${b.block1.label}`,
-      'Б2 OI Placement':      `${b.block2.score}/11  ${b.block2.label}`,
-      'Б3 OI Retention':      `${b.block3.score}/13  ${b.block3.label}`,
-      'Б4 Механика захвата':  `${b.block4.score}/16  ${b.block4.label}`,
-      'Б5 Re-Auction':        `${b.block5.score}/13  ${b.block5.label}`,
-      'Б6 Geometry':          `${b.block6.score}/8   ${b.block6.label}`,
-      'Б8 Skew':              `${b.block8.score}/7   ${b.block8.label}`,
-      'Б9 H1 Snapshot':       `${b.block9.score}/18  ${b.block9.label}`,
+  // ── Блоки ─────────────────────────────────────────────────
+  const BLOCKS = [
+    { key:'block1', name:'Energy',           max:14 },
+    { key:'block2', name:'OI Placement',     max:11 },
+    { key:'block3', name:'OI Retention',     max:13 },
+    { key:'block4', name:'Механика захвата', max:16 },
+    { key:'block5', name:'Re-Auction',       max:13 },
+    { key:'block6', name:'Geometry',         max:8  },
+    { key:'block8', name:'Skew',             max:7  },
+    { key:'block9', name:'H1 Snapshot',      max:18 },
+  ];
 
-      '─── ДЕТАЛИ ───':       null,
-      direction:              det.direction,
-      fvg:                    `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}  (${det.fvg.imb_range_pct}%)`,
-      pivot:                  `${det.pivot.ts}  low=${det.pivot.value}`,
-      inversion:              `${det.inversion.ts}  close=${det.inversion.close}`,
-      skew_depth:             det.skew_depth,
-      gross_oi:               mx.gross_oi,
-      net_oi:                 mx.net_oi,
-      retention_ratio:        mx.retention_ratio,
-      share_below_fvg:        `${mx.share_below} + ${mx.share_fvg} = ${((mx.share_below??0)+(mx.share_fvg??0)).toFixed(3)}`,
-      fvg_volume_share:       mx.fvg_volume_share,
-      h1_doi:                 mx.h1_doi_pct,
-      h1_liqshare:            mx.h1_liqshare_pct,
-    };
+  const blocksHtml = BLOCKS.map(bl => {
+    const d     = b[bl.key];
+    const color = scoreColor(d.score, bl.max);
+    const width = Math.round(d.score / bl.max * 100);
+    return `
+      <div class="block-row">
+        <div class="block-header">
+          <span class="block-name">${bl.name}</span>
+          <span class="block-score" style="color:${color}">${d.score} / ${bl.max}</span>
+        </div>
+        <div class="block-bar-track">
+          <div class="block-bar-fill" style="width:${width}%; background:${color}"></div>
+        </div>
+        <div class="block-label">${d.label}</div>
+      </div>`;
+  }).join('');
 
-    debugEl.textContent = JSON.stringify(out, null, 2);
-    reportEl.classList.add('visible');
+  const blocksCard = `
+    <div class="rc">
+      <div class="section-title">Блоки оценки</div>
+      ${blocksHtml}
+    </div>`;
+
+  // ── Ожидаемый тест ────────────────────────────────────────
+  const et = sc.expectedTest;
+  const testCard = `
+    <div class="rc">
+      <div class="section-title">Ожидаемый тест</div>
+      <div class="test-level">${et.level}</div>
+      <div class="test-range">${et.range}</div>
+      <div class="test-comment">${et.comment}</div>
+    </div>`;
+
+  // ── Метрики ───────────────────────────────────────────────
+  const pctStr = v => v != null ? (v * 100).toFixed(1) + '%' : '—';
+  const metrics = [
+    { label:'gross OI',    value: mx.gross_oi  + '%'           },
+    { label:'net OI',      value: mx.net_oi    + '%'           },
+    { label:'retention',   value: pctStr(mx.retention_ratio)   },
+    { label:'↓+FVG zone',  value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
+    { label:'FVG vol',     value: pctStr(mx.fvg_volume_share)  },
+    { label:'skew depth',  value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—' },
+    { label:'H1 OI',       value: mx.h1_doi_pct + '%'          },
+    { label:'H1 liqshare', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
+    { label:'OI window',   value: mx.oi_window_count + ' св.'  },
+  ];
+  const metricsHtml = metrics.map(m => `
+    <div class="metric-chip">
+      <div class="metric-chip-label">${m.label}</div>
+      <div class="metric-chip-value">${m.value}</div>
+    </div>`).join('');
+
+  const metricsCard = `
+    <div class="rc">
+      <div class="section-title">Ключевые метрики</div>
+      <div class="metrics-grid">${metricsHtml}</div>
+    </div>`;
+
+  // ── Параметры ─────────────────────────────────────────────
+  const rows = [
+    ['FVG',           `${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}`],
+    ['Инверсия',      `${det.inversion.ts} · close ${det.inversion.close}`],
+    ['Pivot',         `${det.pivot.ts} · ${det.pivot.value}`],
+    ['implied_price', det.inversion.implied_price ?? '—'],
+    ['imb_range',     det.fvg.imb_range_pct + '%'],
+    ['share ↓',       mx.share_below],
+    ['share FVG',     mx.share_fvg],
+    ['share inv',     mx.share_inv],
+    ['H1 limb',       mx.h1_limb_pct != null ? mx.h1_limb_pct.toFixed(1) + '%' : '—'],
+    ['H1 CVD',        mx.h1_cvd_sign === 1 ? '▲ positive' : mx.h1_cvd_sign === -1 ? '▼ negative' : '— neutral'],
+  ];
+  const detailsHtml = rows.map(([k, v]) =>
+    `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${v}</span></div>`
+  ).join('');
+
+  const detailsCard = `
+    <div class="rc">
+      <div class="section-title">Параметры</div>
+      ${detailsHtml}
+    </div>`;
+
+  return verdictCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard;
+}
+
+// ── Запуск анализа ────────────────────────────────────────────
+function runAnalysis() {
+  const m15Text  = document.getElementById('m15Input').value;
+  const h1Text   = document.getElementById('h1Input').value;
+  const errorsEl = document.getElementById('errors');
+  const reportEl = document.getElementById('report');
+
+  errorsEl.classList.remove('visible');
+  reportEl.classList.remove('visible');
+  reportEl.innerHTML = '';
+
+  const parsed = parseInput(m15Text, h1Text);
+  if (parsed.errors.length > 0) {
+    errorsEl.innerHTML = parsed.errors.map(e => `<p>⚠ ${e}</p>`).join('');
+    errorsEl.classList.add('visible');
+    return;
   }
+
+  const det = detect(parsed.m15);
+  if (!det.ok) {
+    errorsEl.innerHTML = det.errors.map(e => `<p>⚠ ${e}</p>`).join('');
+    errorsEl.classList.add('visible');
+    return;
+  }
+
+  const mx = computeMetrics(parsed.m15, parsed.h1, det);
+  const sc = computeScore(parsed.m15, parsed.h1, det, mx);
+
+  reportEl.innerHTML = buildReport(sc, det, mx);
+  reportEl.classList.add('visible');
+  reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 </script>
 
 </body>
