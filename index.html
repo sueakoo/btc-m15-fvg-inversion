@@ -36,6 +36,7 @@
 </div>
 
 <script src="js/parser.js"></script>
+<script src="js/detection.js"></script>
 <script>
   function runAnalysis() {
     const m15Text = document.getElementById('m15Input').value;
@@ -48,20 +49,42 @@
     errorsEl.classList.remove('visible');
     reportEl.classList.remove('visible');
 
-    const result = parseInput(m15Text, h1Text);
+    const parsed = parseInput(m15Text, h1Text);
 
-    if (result.errors.length > 0) {
-      errorsEl.innerHTML = result.errors.map(e => `<p>⚠ ${e}</p>`).join('');
+    if (parsed.errors.length > 0) {
+      errorsEl.innerHTML = parsed.errors.map(e => `<p>⚠ ${e}</p>`).join('');
       errorsEl.classList.add('visible');
       return;
     }
 
-    // Debug: show parsed candles as JSON until analysis blocks are built
+    const det = detect(parsed.m15);
+
+    if (!det.ok) {
+      errorsEl.innerHTML = det.errors.map(e => `<p>⚠ ${e}</p>`).join('');
+      errorsEl.classList.add('visible');
+      return;
+    }
+
+    // Debug output — будет заменён на финальный отчёт в последующих шагах
     const out = {
-      m15_count: result.m15.length,
-      h1_count: result.h1.length,
-      m15: result.m15,
-      h1: result.h1
+      '── DETECTION ──': null,
+      direction:              det.direction,
+      fvg_type:               det.fvg.type,
+      upper_fvg:              det.fvg.upper_fvg,
+      lower_fvg:              det.fvg.lower_fvg,
+      imb_range_pct:          det.fvg.imb_range_pct,
+      merged_fvg_count:       det.fvg.mergedCount,
+      pivot_ts:               det.pivot.ts,
+      pivot_value:            det.pivot.value,
+      inversion_ts:           det.inversion.ts,
+      inversion_close:        det.inversion.close,
+      skew_depth:             det.skew_depth,
+      single_candle_inv:      det.singleCandleInversion,
+      oi_window_candles:      det.oiWindowIdx,
+      fvg_overlap_candles:    det.fvgOverlapIdx,
+      '── RAW ──': null,
+      m15_count:              parsed.m15.length,
+      h1_count:               parsed.h1.length
     };
 
     debugEl.textContent = JSON.stringify(out, null, 2);
