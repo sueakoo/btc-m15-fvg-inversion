@@ -81,8 +81,8 @@ function chipColor(label, mx, det) {
 function h1LimbHtml(limbPct) {
   if (limbPct == null) return '—';
   const val = limbPct.toFixed(1) + '%';
-  if (limbPct < -5)  return `${val} · ликвидировали <span style="color:#e05555">шортистов</span>`;
-  if (limbPct > 5)   return `${val} · ликвидировали <span style="color:#3fb950">лонгистов</span>`;
+  if (limbPct < -5)  return `<span style="color:#e05555">${val} · ликвидировали шортистов</span>`;
+  if (limbPct > 5)   return `<span style="color:#3fb950">${val} · ликвидировали лонгистов</span>`;
   return val + ' · поровну';
 }
 
@@ -118,7 +118,7 @@ function oiZoneHtml(below, fvg, inv, pctFn) {
     <div class="oi-zone-grid">
       ${cell('перед FVG', below, '#3fb950')}
       ${cell('внутри FVG', fvg,  '#d4a017')}
-      ${cell('инверсия',   inv,  '#888')}
+      ${cell('свеча инверсии', inv, '#e38a11')}
     </div>
   </div>`;
 }

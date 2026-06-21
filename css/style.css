@@ -149,9 +149,9 @@ body {
 
 /* ── Section title ── */
 .section-title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  color: #444;
+  color: #555;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 14px;
@@ -178,8 +178,8 @@ body {
 }
 .block-bar-fill { height: 5px; border-radius: 3px; }
 
-.block-label   { font-size: 12px; color: #666; line-height: 1.4; }
-.block-comment { font-size: 12px; color: #777; line-height: 1.5; margin-top: 3px; }
+.block-label   { font-size: 13px; color: #888; line-height: 1.4; }
+.block-comment { font-size: 13px; color: #999; line-height: 1.5; margin-top: 3px; }
 
 /* ── Conclusion ── */
 .conclusion-card { border-left: 3px solid #333; }
@@ -201,7 +201,7 @@ body {
 /* ── Expected test ── */
 .test-level   { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
 .test-range   { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
-.test-comment { font-size: 12px; color: #666; }
+.test-comment { font-size: 13px; color: #888; }
 
 /* ── Metrics grid ── */
 .metrics-grid {
@@ -232,19 +232,19 @@ body {
 .detail-row:last-child { border-bottom: none; }
 .detail-key-group { display: flex; flex-direction: column; gap: 1px; }
 .detail-key { font-size: 12px; color: #888; white-space: nowrap; }
-.detail-subtitle { font-size: 10px; color: #4a4a4a; letter-spacing: 0.1px; }
+.detail-subtitle { font-size: 11px; color: #666; letter-spacing: 0.1px; }
 .detail-val { font-size: 13px; color: #aaa; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* ── OI Zone Distribution ── */
 .oi-zone-block { background: #0a0a0a; border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
-.oi-zone-title { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.oi-zone-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
 .oi-zone-grid  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .oi-zone-cell  { text-align: center; }
-.oi-zone-cell-label { font-size: 9px; color: #555; margin-bottom: 3px; }
+.oi-zone-cell-label { font-size: 10px; color: #777; margin-bottom: 3px; }
 .oi-zone-cell-value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .oi-zone-mini-bar  { height: 3px; background: #1e1e1e; border-radius: 2px; margin-top: 5px; }
 .oi-zone-mini-fill { height: 3px; border-radius: 2px; }
 
 /* ── Metric chip subtitle + hint ── */
-.metric-chip-sub  { font-size: 10px; color: #4a4a4a; margin-top: 1px; line-height: 1.3; }
-.metric-chip-hint { font-size: 10px; color: #555; margin-top: 2px; font-style: italic; }
+.metric-chip-sub  { font-size: 11px; color: #666; margin-top: 1px; line-height: 1.3; }
+.metric-chip-hint { font-size: 11px; color: #777; margin-top: 2px; font-style: italic; }
