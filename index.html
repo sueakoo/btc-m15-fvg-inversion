@@ -52,6 +52,14 @@
       <input type="text" id="saveRR" placeholder="например 1:1.5">
     </div>
     <div class="modal-field">
+      <label>Старший контекст</label>
+      <select id="saveSeniorCtx">
+        <option value="">— выберите —</option>
+        <option value="есть">Есть старший контекст</option>
+        <option value="нет">Нет старшего контекста</option>
+      </select>
+    </div>
+    <div class="modal-field">
       <label>Реальная глубина теста</label>
       <select id="saveTestDepth">
         <option value="">— выберите —</option>
@@ -374,6 +382,7 @@ function openSaveModal() {
   document.getElementById('saveOutcome').value = '';
   document.getElementById('saveRR').value = '';
   document.getElementById('saveRRRow').style.display = 'none';
+  document.getElementById('saveSeniorCtx').value = '';
   document.getElementById('saveTestDepth').value = '';
   document.getElementById('saveNotes').value = '';
   document.getElementById('saveModal').classList.add('visible');
@@ -389,10 +398,11 @@ function onOutcomeChange() {
 }
 
 function confirmSave() {
-  const outcome   = document.getElementById('saveOutcome').value;
-  const rr        = document.getElementById('saveRR').value.trim();
-  const testDepth = document.getElementById('saveTestDepth').value;
-  const notes     = document.getElementById('saveNotes').value.trim();
+  const outcome    = document.getElementById('saveOutcome').value;
+  const rr         = document.getElementById('saveRR').value.trim();
+  const seniorCtx  = document.getElementById('saveSeniorCtx').value;
+  const testDepth  = document.getElementById('saveTestDepth').value;
+  const notes      = document.getElementById('saveNotes').value.trim();
   if (!outcome || !testDepth) { alert('Укажите исход и глубину теста'); return; }
 
   const sc = _lastSc, det = _lastDet, mx = _lastMx;
@@ -401,6 +411,7 @@ function confirmSave() {
     saved_at: new Date().toISOString(),
     outcome,
     rr: outcome === 'тейк' ? (rr || null) : null,
+    senior_context: seniorCtx || null,
     actual_test: testDepth,
     notes: notes || null,
     // Идентификация
