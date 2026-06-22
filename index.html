@@ -10,7 +10,10 @@
 <div class="app">
 
   <div class="header">
-    <h1>BTC M15 FVG Inversion Analyzer</h1>
+    <div class="header-top">
+      <h1>BTC M15 FVG Inversion Analyzer</h1>
+      <button class="btn-export" id="btnExport" onclick="exportSetups()">Экспорт сетапов (0)</button>
+    </div>
     <p>Вставьте данные свечей из X-RAY и нажмите Анализ</p>
   </div>
 
@@ -32,11 +35,53 @@
 
 </div>
 
+<!-- ── Save Modal ── -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal">
+    <div class="modal-title">Сохранить сетап</div>
+    <div class="modal-field">
+      <label>Исход</label>
+      <select id="saveOutcome" onchange="onOutcomeChange()">
+        <option value="">— выберите —</option>
+        <option value="тейк">Тейк</option>
+        <option value="стоп">Стоп</option>
+      </select>
+    </div>
+    <div class="modal-field" id="saveRRRow" style="display:none">
+      <label>R/R</label>
+      <input type="text" id="saveRR" placeholder="например 1:1.5">
+    </div>
+    <div class="modal-field">
+      <label>Реальная глубина теста</label>
+      <select id="saveTestDepth">
+        <option value="">— выберите —</option>
+        <option value="Мелкий">Мелкий</option>
+        <option value="Средний">Средний</option>
+        <option value="Глубокий">Глубокий</option>
+        <option value="К Pivot">К Pivot</option>
+        <option value="Провал">Провал</option>
+        <option value="Без теста">Без теста</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Заметка</label>
+      <textarea id="saveNotes" rows="2" placeholder="необязательно"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeSaveModal()">Отмена</button>
+      <button class="btn-modal-confirm" onclick="confirmSave()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/parser.js"></script>
 <script src="js/detection.js"></script>
 <script src="js/metrics.js"></script>
 <script src="js/scoring.js"></script>
 <script>
+
+// ── Последний анализ (для сохранения) ────────────────────────
+let _lastSc = null, _lastDet = null, _lastMx = null;
 
 // ── Цвета ─────────────────────────────────────────────────────
 const VERDICT_COLORS = {
@@ -284,7 +329,8 @@ function buildReport(sc, det, mx) {
       ${detailsHtml}
     </div>`;
 
-  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard;
+  const saveBtn = `<button class="btn-save" id="btnSave" onclick="openSaveModal()">Сохранить сетап</button>`;
+  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard + saveBtn;
 }
 
 // ── Запуск анализа ────────────────────────────────────────────
@@ -315,10 +361,110 @@ function runAnalysis() {
   const mx = computeMetrics(parsed.m15, parsed.h1, det);
   const sc = computeScore(parsed.m15, parsed.h1, det, mx);
 
+  _lastSc = sc; _lastDet = det; _lastMx = mx;
+
   reportEl.innerHTML = buildReport(sc, det, mx);
   reportEl.classList.add('visible');
   reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ── Сохранение и экспорт ─────────────────────────────────────
+function openSaveModal() {
+  if (!_lastSc) return;
+  document.getElementById('saveOutcome').value = '';
+  document.getElementById('saveRR').value = '';
+  document.getElementById('saveRRRow').style.display = 'none';
+  document.getElementById('saveTestDepth').value = '';
+  document.getElementById('saveNotes').value = '';
+  document.getElementById('saveModal').classList.add('visible');
+}
+
+function closeSaveModal() {
+  document.getElementById('saveModal').classList.remove('visible');
+}
+
+function onOutcomeChange() {
+  const v = document.getElementById('saveOutcome').value;
+  document.getElementById('saveRRRow').style.display = v === 'тейк' ? 'flex' : 'none';
+}
+
+function confirmSave() {
+  const outcome   = document.getElementById('saveOutcome').value;
+  const rr        = document.getElementById('saveRR').value.trim();
+  const testDepth = document.getElementById('saveTestDepth').value;
+  const notes     = document.getElementById('saveNotes').value.trim();
+  if (!outcome || !testDepth) { alert('Укажите исход и глубину теста'); return; }
+
+  const sc = _lastSc, det = _lastDet, mx = _lastMx;
+  const b  = sc.blocks;
+  const setup = {
+    saved_at: new Date().toISOString(),
+    outcome,
+    rr: outcome === 'тейк' ? (rr || null) : null,
+    actual_test: testDepth,
+    notes: notes || null,
+    // Идентификация
+    direction: det.direction,
+    inversion_ts: det.inversion.ts,
+    inversion_close: det.inversion.close,
+    pivot_ts: det.pivot.ts,
+    pivot_price: det.pivot.value,
+    implied_price: det.inversion.implied_price ?? null,
+    fvg_lower: det.fvg.lower_fvg,
+    fvg_upper: det.fvg.upper_fvg,
+    imb_range_pct: det.fvg.imb_range_pct,
+    skew_depth: det.skew_depth ?? null,
+    // Скоринг
+    total_score: sc.total,
+    verdict: sc.verdict,
+    stop_flags: sc.stopFlags,
+    red_flags: sc.redFlags,
+    expected_test_level: sc.expectedTest.level,
+    expected_test_range: sc.expectedTest.range,
+    // Блоки
+    block1: b.block1.score, block2: b.block2.score,
+    block3: b.block3.score, block4: b.block4.score,
+    block4_scenario: b.block4.label,
+    block5: b.block5.score, block6: b.block6.score,
+    block8: b.block8.score, block9: b.block9.score,
+    // Метрики
+    gross_oi: mx.gross_oi, net_oi: mx.net_oi,
+    retention_ratio: mx.retention_ratio,
+    share_below: mx.share_below, share_fvg: mx.share_fvg, share_inv: mx.share_inv,
+    fvg_volume_share: mx.fvg_volume_share,
+    h1_doi_pct: mx.h1_doi_pct, h1_liqshare_pct: mx.h1_liqshare_pct,
+    h1_limb_pct: mx.h1_limb_pct, h1_cvd_sign: mx.h1_cvd_sign,
+    oi_window_count: mx.oi_window_count,
+  };
+
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  all.push(setup);
+  localStorage.setItem('btc_fvg_setups', JSON.stringify(all));
+  closeSaveModal();
+  updateExportBtn();
+  const btn = document.getElementById('btnSave');
+  if (btn) { btn.textContent = '✓ Сохранено'; setTimeout(() => { btn.textContent = 'Сохранить сетап'; }, 2000); }
+}
+
+function exportSetups() {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  if (!all.length) { alert('Нет сохранённых сетапов'); return; }
+  const blob = new Blob([JSON.stringify(all, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `fvg_setups_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function updateExportBtn() {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  const btn = document.getElementById('btnExport');
+  if (btn) btn.textContent = `Экспорт сетапов (${all.length})`;
+}
+
+updateExportBtn();
 </script>
 
 </body>

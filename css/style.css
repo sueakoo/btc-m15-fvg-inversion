@@ -235,6 +235,67 @@ body {
 .detail-subtitle { font-size: 11px; color: #999; letter-spacing: 0.1px; }
 .detail-val { font-size: 13px; color: #aaa; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+/* ── Header top row ── */
+.header-top { display: flex; justify-content: space-between; align-items: center; }
+.btn-export {
+  font-size: 11px; color: #555; background: transparent;
+  border: 1px solid #222; border-radius: 5px;
+  padding: 4px 10px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-export:hover { color: #888; border-color: #444; }
+
+/* ── Save button (in report) ── */
+.btn-save {
+  width: 100%; padding: 11px; background: transparent;
+  color: #555; border: 1px solid #222; border-radius: 6px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  margin-top: 2px; transition: all 0.15s;
+}
+.btn-save:hover { border-color: #444; color: #aaa; }
+
+/* ── Save Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 100;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal {
+  background: #1a1a1a; border: 1px solid #2a2a2a;
+  border-radius: 10px; padding: 20px;
+  width: 100%; max-width: 380px; margin: 16px;
+}
+.modal-title { font-size: 14px; font-weight: 700; color: #e0e0e0; margin-bottom: 16px; }
+.modal-field { margin-bottom: 12px; }
+.modal-field label {
+  display: block; font-size: 10px; font-weight: 600;
+  color: #666; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px;
+}
+.modal-field select,
+.modal-field input[type="text"],
+.modal-field textarea {
+  width: 100%; background: #0f0f0f; border: 1px solid #2a2a2a;
+  border-radius: 6px; color: #c8c8c8; font-size: 13px;
+  padding: 8px 10px; outline: none; font-family: inherit;
+}
+.modal-field select:focus,
+.modal-field input:focus,
+.modal-field textarea:focus { border-color: #444; }
+.modal-field textarea { resize: none; line-height: 1.5; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn-modal-cancel {
+  flex: 1; padding: 9px; background: #1e1e1e; color: #888;
+  border: 1px solid #2a2a2a; border-radius: 6px;
+  font-size: 13px; cursor: pointer; font-family: inherit;
+}
+.btn-modal-cancel:hover { background: #252525; }
+.btn-modal-confirm {
+  flex: 2; padding: 9px; background: #1d6f42; color: #fff;
+  border: none; border-radius: 6px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-modal-confirm:hover { background: #238551; }
+
 /* ── OI Zone Distribution ── */
 .oi-zone-block { background: #0a0a0a; border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
 .oi-zone-title { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
