@@ -140,7 +140,7 @@ function buildReport(sc, det, mx) {
   const verdictCard = `
     <div class="rc verdict-card" style="border-left-color: ${vColor}">
       <div class="score-row">
-        <div class="score-num">${sc.total}<span class="score-denom">/100</span></div>
+        <div class="score-num" style="color:${vColor}">${sc.total}<span class="score-denom">/100</span></div>
         <div class="verdict-label" style="color: ${vColor}">${sc.verdict}</div>
       </div>
       <div class="total-bar-track">
