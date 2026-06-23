@@ -255,6 +255,7 @@ function buildReport(sc, det, mx) {
         </div>
         <div class="block-label">${d.label}</div>
         ${d.comment ? `<div class="block-comment">${d.comment}</div>` : ''}
+        ${bl.key === 'block3' ? `<div class="block-disclaimer">⚠ Сторону снятия OI на M15 точно установить невозможно — логика оценивает только тайминг.</div>` : ''}
       </div>`;
   }).join('');
 

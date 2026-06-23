@@ -178,8 +178,9 @@ body {
 }
 .block-bar-fill { height: 5px; border-radius: 3px; }
 
-.block-label   { font-size: 13px; color: #aaa; line-height: 1.4; }
-.block-comment { font-size: 13px; color: #b8b8b8; line-height: 1.5; margin-top: 3px; }
+.block-label      { font-size: 13px; color: #aaa; line-height: 1.4; }
+.block-comment    { font-size: 13px; color: #b8b8b8; line-height: 1.5; margin-top: 3px; }
+.block-disclaimer { font-size: 11px; color: #666; font-style: italic; margin-top: 4px; }
 
 /* ── Conclusion ── */
 .conclusion-card { border-left: 3px solid #333; }
