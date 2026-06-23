@@ -42,6 +42,20 @@ function computeMetrics(m15, h1, det) {
   const net_oi          = gross_oi + unload_oi;
   const retention_ratio = gross_oi > 0 ? net_oi / gross_oi : null;
 
+  // ── Тайминг снятий OI (Block 3 redesign) ─────────────────
+  let exitPreFvgSum = 0;
+  for (const c of oiCandles) {
+    const d = c.doi_pct ?? 0;
+    if (d < 0 && c.high != null && c.high < lower_fvg) exitPreFvgSum += d;
+  }
+  let exitInFvgSum = 0;
+  for (const c of fvgCandles) {
+    const d = c.doi_pct ?? 0;
+    if (d < 0) exitInFvgSum += d;
+  }
+  const exit_pre_fvg = Math.abs(exitPreFvgSum);
+  const exit_in_fvg  = Math.abs(exitInFvgSum);
+
   // ── OI Placement (Block 2) ───────────────────────────────
   // share_below: позитивный OI на свечах НИЖЕ FVG (high < lower_fvg)
   let belowSum = 0;
@@ -105,6 +119,8 @@ function computeMetrics(m15, h1, det) {
     unload_oi:         _r(unload_oi,       4),
     net_oi:            _r(net_oi,          4),
     retention_ratio:   _r(retention_ratio, 3),
+    exit_pre_fvg:      _r(exit_pre_fvg,   4),
+    exit_in_fvg:       _r(exit_in_fvg,    4),
 
     // ── OI Placement ────────────────────────
     share_below:       _r(share_below, 3),

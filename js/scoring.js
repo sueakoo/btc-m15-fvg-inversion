@@ -54,14 +54,31 @@ function _b2Comment(score) {
   return 'OI практически нет или размещён на максимуме. Позиции нечем защищать.';
 }
 
-function _b3Comment(score, transfer) {
-  if (transfer)     return 'Позиция разгружена, но высокий объём в зоне говорит о вероятной смене рук. Передача риска.';
-  if (score === 13) return 'Удержание полное — никто не зафиксировался. Позиция остаётся живой.';
-  if (score === 11) return 'Небольшая часть OI снята, основной объём сохранён. Удержание хорошее.';
-  if (score >= 9)   return 'Заметная разгрузка, но больше половины осталось — есть кому защищать уровень.';
-  if (score >= 7)   return 'Значительная часть позиции снята — защиты мало.';
-  if (score >= 3)   return 'Большая часть OI ушла. Уровень фактически без защиты.';
-  return 'Практически полная разгрузка. Кому держать уровень — непонятно.';
+function _b3Comment(score, scenario) {
+  if (scenario === 'none') return 'Нет нового OI. Нечего анализировать.';
+  if (scenario === 'no_exit') {
+    if (score >= 13) return 'Все набранные позиции дошли до инверсии. Ресурс максимально сохранён.';
+    if (score >= 11) return 'Набор прошёл без разгрузки. Ресурс полный.';
+    return 'Снятий не было, но объём OI невелик.';
+  }
+  if (scenario === 'early_exit') {
+    if (score >= 9) return 'Часть OI снята до зоны, значимый ресурс дошёл до инверсии.';
+    if (score >= 7) return 'Снятия до FVG разгрузили позицию — ресурс на момент инверсии снижен.';
+    return 'Основные снятия прошли до зоны. На инверсии ресурса практически нет.';
+  }
+  if (scenario === 'pre_fvg') {
+    if (score >= 11) return 'Снятия в зоне — позиции вышли при входе в FVG. Остаток держится.';
+    if (score >= 9)  return 'Часть OI ушла внутри FVG, ресурс в целом сохранён.';
+    if (score >= 6)  return 'Заметные снятия в зоне снизили ресурс. Защиты мало.';
+    return 'Большая часть OI снята в зоне FVG. Уровень без защиты.';
+  }
+  if (scenario === 'fvg_fvg') {
+    if (score >= 13) return 'Бой в зоне выигран набором — позиция закреплена внутри имбаланса.';
+    if (score >= 11) return 'Активность в зоне с преимуществом набора. Ресурс сохранён.';
+    if (score >= 6)  return 'Борьба в зоне без явного перевеса — ресурс ограничен.';
+    return 'Набор и снятие в зоне почти равны. Ресурса для защиты практически нет.';
+  }
+  return '';
 }
 
 function _b5Comment(volStrong, cvdMode) {
@@ -149,45 +166,60 @@ function _scoreBlock2(mx) {
 
 // ── Блок 3 — OI Retention (13 pts) ───────────────────────────
 function _scoreBlock3(mx) {
-  const gross = mx.gross_oi       ?? 0;
-  const net   = mx.net_oi         ?? 0;
-  const ret   = mx.retention_ratio ?? 0;
-  const fvgVol= mx.fvg_volume_share ?? 0;
+  const gross   = mx.gross_oi      ?? 0;
+  const net     = mx.net_oi        ?? 0;
+  const shareFvg= mx.share_fvg     ?? 0;
+  const exitPre = mx.exit_pre_fvg  ?? 0;
+  const exitFvg = mx.exit_in_fvg   ?? 0;
 
-  if (gross === 0) return { score: 0, label: 'Нет нового OI', comment: _b3Comment(0, false), transfer: false };
+  if (gross === 0) return { score: 0, label: 'Нет нового OI', comment: _b3Comment(0, 'none'), scenario: 'none' };
 
-  if (net >= 0 && net < 0.20 && gross >= 0.40 && fvgVol >= 0.35) {
-    return { score: 9, label: 'Передача риска: высокая активность при слабом чистом OI', comment: _b3Comment(9, true), transfer: true };
-  }
+  const hasExits         = (exitPre + exitFvg) > 0.03;
+  const buildInFvg       = shareFvg >= 0.50;
+  const exitInFvgDominant = exitFvg >= exitPre;
+
+  let scenario;
+  if (!hasExits)                           scenario = 'no_exit';
+  else if (buildInFvg && exitInFvgDominant) scenario = 'fvg_fvg';
+  else if (!buildInFvg && exitInFvgDominant) scenario = 'pre_fvg';
+  else                                     scenario = 'early_exit';
 
   let score;
-  if (net >= 0.40) {
-         if (ret >= 0.70) score = 13;
-    else if (ret >= 0.40) score = 11;
-    else if (ret >= 0.15) score =  9;
-    else                  score =  7;
-  } else if (net >= 0.20) {
-         if (ret >= 0.70) score = 11;
-    else if (ret >= 0.40) score =  9;
-    else if (ret >= 0.15) score =  7;
-    else                  score =  5;
-  } else if (net >= 0.10) {
-         if (ret >= 0.70) score =  7;
-    else if (ret >= 0.40) score =  5;
-    else if (ret >= 0.15) score =  3;
-    else                  score =  2;
-  } else {
-         if (ret >= 0.70) score =  4;
-    else if (ret >= 0.40) score =  3;
-    else if (ret >= 0.15) score =  2;
+  if (scenario === 'no_exit') {
+         if (net >= 0.40) score = 13;
+    else if (net >= 0.20) score = 11;
+    else if (net >= 0.10) score =  7;
+    else                  score =  4;
+  } else if (scenario === 'fvg_fvg') {
+         if (net >= 0.40) score = 13;
+    else if (net >= 0.20) score = 11;
+    else if (net >= 0.10) score =  6;
+    else if (net >= 0.03) score =  3;
     else                  score =  1;
+  } else if (scenario === 'pre_fvg') {
+         if (net >= 0.40) score = 11;
+    else if (net >= 0.20) score =  9;
+    else if (net >= 0.10) score =  6;
+    else                  score =  3;
+  } else { // early_exit
+         if (net >= 0.40) score =  9;
+    else if (net >= 0.20) score =  7;
+    else if (net >= 0.10) score =  4;
+    else                  score =  2;
   }
+
+  const scenarioLabel = {
+    no_exit:    'снятий нет — ресурс полный',
+    fvg_fvg:   'набор и снятие в зоне FVG',
+    pre_fvg:   'набор до зоны, снятие в FVG',
+    early_exit: 'набор до зоны, снятие до FVG',
+  }[scenario];
 
   return {
     score,
-    label:    `net_oi: ${net}%, retention: ${(ret * 100).toFixed(0)}%`,
-    comment:  _b3Comment(score, false),
-    transfer: false,
+    label:    `net_oi: ${net}% · ${scenarioLabel}`,
+    comment:  _b3Comment(score, scenario),
+    scenario,
   };
 }
 
@@ -534,7 +566,7 @@ function _stopFlags(b, mx, det) {
   if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.h1_doi_pct ?? 0) < 0.10) {
     flags.push('Пустая инверсия: нет OI, нет объёма, H1 не подтверждает');
   }
-  if ((mx.retention_ratio ?? 0) < 0.15 && (mx.fvg_volume_share ?? 0) < 0.25 && mx.gross_oi > 0) {
+  if (b.block3.score <= 2 && (mx.fvg_volume_share ?? 0) < 0.25 && (mx.gross_oi ?? 0) > 0) {
     flags.push('Слабый OI без передачи риска');
   }
   if ((mx.fvg_volume_share ?? 0) < 0.15 && (mx.gross_oi ?? 0) >= 0.05 && (mx.gross_oi ?? 0) < 0.20) {
@@ -565,7 +597,7 @@ function _stopFlags(b, mx, det) {
 function _redFlags(b) {
   const flags = [];
   if (b.block1.score <= 4 && b.block3.score <= 4) {
-    flags.push('Пустой OI-ресурс: Energy ≤ 4 и Retention ≤ 4');
+    flags.push('Пустой OI-ресурс: Energy ≤ 4 и OI Retention ≤ 4');
   }
   if (b.block6.flag === 'high_tail_risk') {
     flags.push('Кульминационный хвост: повышен риск глубокого теста');
@@ -702,9 +734,9 @@ function _buildConclusion(b, det, mx, sc) {
   const oiPart  = b.block1.score >= 10 ? 'OI набран полностью'
                 : b.block1.score >=  7 ? 'OI набран умеренно'
                 : 'OI слабый';
-  const retPart = b.block3.score >= 11 ? 'не разгружался'
-                : b.block3.score >=  7 ? 'разгрузка частичная'
-                : 'разгрузка прошла';
+  const retPart = b.block3.score >= 11 ? 'ресурс OI сохранён'
+                : b.block3.score >=  7 ? 'ресурс частично снят'
+                : 'ресурс OI разгружен';
   const zoneParts = [];
   if (b.block2.score >= 9) zoneParts.push('зона принята с объёмом');
   if (b.block5.score >= 8) zoneParts.push('аукцион подтверждён');
