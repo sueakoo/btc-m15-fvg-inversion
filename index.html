@@ -125,7 +125,12 @@ function chipColor(label, mx, det) {
   if (label === 'gross OI')    return g < 0.20 ? '#e05555' : null;
   if (label === 'net OI')      return n < 0.10 ? '#e05555' : n < 0.20 ? '#d4a017' : null;
   if (label === 'retention')   return r < 15   ? '#e05555' : r < 40   ? '#d4a017' : null;
-  if (label === 'skew depth')  return s > 1.20 ? '#e05555' : s >= 0.75 ? '#d4a017' : null;
+  if (label === 'skew depth') {
+    const z = mx.ip_zone;
+    if (z === 'critical' || z === 'outside') return '#e05555';
+    if (z === 'weak') return '#d4a017';
+    return null;
+  }
   if (label === 'H1 OI')       return h < 0    ? '#e05555' : h < 0.10  ? '#d4a017' : null;
   if (label === 'H1 liqshare') return l >= 10  ? '#e05555' : l >= 5    ? '#d4a017' : null;
   return null;
@@ -145,16 +150,17 @@ function h1CvdHtml(sign) {
   return '— нейтрально';
 }
 
-function skewHint(sd) {
-  if (sd == null) return null;
-  if (sd <= 0)    return 'implied_price выше инверсии';
-  if (sd < 0.15)  return 'implied_price у верхней границы';
-  if (sd < 0.33)  return 'тест верхней части зоны';
-  if (sd < 0.50)  return 'тест середины зоны';
-  if (sd < 0.75)  return 'тест нижней части зоны';
-  if (sd < 1.00)  return 'тест нижней границы зоны';
-  if (sd < 1.20)  return 'тест ниже зоны вероятен';
-  return 'за пределами зоны — стоп';
+function skewHint(sd, mx) {
+  const z = mx?.ip_zone;
+  if (z === 'critical') return 'implied_price ниже Pivot — стоп';
+  if (z === 'outside')  return 'implied_price ниже зоны FVG — тест может уйти глубже';
+  if (z === 'weak')     return 'implied_price в нижней части FVG — тест вглубь зоны';
+  if (z === 'strong') {
+    if (sd == null || sd <= 0) return 'implied_price выше инверсии';
+    if (sd < 0.33) return 'implied_price в верхней части FVG — поддержка сильная';
+    return 'implied_price в верхней части FVG';
+  }
+  return null;
 }
 
 function oiZoneHtml(below, fvg, inv, pctFn) {
@@ -284,7 +290,7 @@ function buildReport(sc, det, mx) {
     { label:'retention',   sub:'удержание позиции',             value: pctStr(mx.retention_ratio)   },
     { label:'↓+FVG zone',  sub:'OI ниже точки инверсии',       value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
     { label:'FVG vol',     sub:'объём внутри зоны',             value: pctStr(mx.fvg_volume_share)  },
-    { label:'skew depth',  sub:'отрыв implied_price от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—', hint: skewHint(det.skew_depth) },
+    { label:'skew depth',  sub:'отрыв implied_price от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—', hint: skewHint(det.skew_depth, mx) },
     { label:'H1 OI',       sub:'прирост позиций на H1',         value: mx.h1_doi_pct + '%'          },
     { label:'H1 liqshare', sub:'доля ликвидаций от объёма H1', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
     { label:'длина хода',  sub:'свечей от пивота до инверсии', value: mx.oi_window_count + ' св.'  },
@@ -327,9 +333,14 @@ function buildReport(sc, det, mx) {
     ['H1 limb', 'сторона ликвидаций H1', h1LimbHtml(mx.h1_limb_pct)],
     ['H1 CVD',  null,                    h1CvdHtml(mx.h1_cvd_sign)],
   ];
+  const crossComment = (mx.share_fvg ?? 0) >= 0.5 && (mx.ip_zone === 'strong' || mx.ip_zone === 'weak')
+    ? `<div class="block-disclaimer" style="margin:6px 0 2px">Доля OI внутри имбаланса и implied_price совпадают по зоне — OI будет защищать уровень при тесте.</div>`
+    : '';
+
   const detailsHtml =
     rowsBefore.map(renderRow).join('') +
     oiZoneHtml(mx.share_below, mx.share_fvg, mx.share_inv, pctStr) +
+    crossComment +
     rowsAfter.map(renderRow).join('');
 
   const detailsCard = `

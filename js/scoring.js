@@ -96,15 +96,19 @@ function _b6Comment(score, flag) {
   return 'Заметные хвосты при слабых телах — движение шло с трудом, встречало сопротивление.';
 }
 
-function _b8Comment(score) {
-  if (score === 7) return 'Алгоритмическая позиция выше цены инверсии — OI поддерживает уровень снизу.';
-  if (score === 6) return 'Минимальное расхождение — implied_price почти совпадает с инверсией. Давление OI близко к текущей цене.';
-  if (score === 5) return 'Небольшое расхождение. Тест верхней части имбаланса возможен, но поддержка есть.';
-  if (score === 4) return 'Умеренное расхождение — позиция держит середину имбаланса. Тест вероятен.';
-  if (score === 3) return 'Заметное расхождение — implied_price значительно ниже инверсии. Тест вглубь имбаланса ожидаем.';
-  if (score === 2) return 'Большое расхождение — позиция у нижней границы. Риск глубокого теста высок.';
-  if (score === 1) return 'Критическое расхождение — позиция на самом дне имбаланса. Удержание под вопросом.';
-  return 'implied_price ниже Pivot или расхождение > 120% имбаланса. Позиция не поддерживает инверсию.';
+function _b8Comment(score, ipZone) {
+  if (ipZone === 'critical') return 'implied_price ниже Pivot — позиция не поддерживает инверсию.';
+  if (ipZone === 'outside')  return 'implied_price ниже зоны FVG — OI тянет к нижней границе и ниже. Риск глубокого теста.';
+  if (ipZone === 'weak')     return 'implied_price в нижней части FVG — тест ожидается вглубь зоны.';
+  if (ipZone === 'strong') {
+    if (score === 7) return 'implied_price на уровне инверсии или выше — OI поддерживает зону снизу.';
+    if (score === 6) return 'implied_price в верхней части FVG, близко к инверсии. Поддержка сильная.';
+    if (score === 5) return 'implied_price в верхней части FVG. Тест верхней части зоны вероятен.';
+    return 'implied_price в верхней части FVG. Тест середины зоны возможен.';
+  }
+  if (score >= 5) return 'OI поддерживает зону.';
+  if (score >= 3) return 'Умеренное расхождение — тест вглубь зоны вероятен.';
+  return 'Большое расхождение по skew.';
 }
 
 // ── Блок 1 — Energy (14 pts) ─────────────────────────────────
@@ -439,24 +443,22 @@ function _scoreBlock6(mx, det) {
 }
 
 // ── Блок 8 — Skew (7 pts) ────────────────────────────────────
-function _scoreBlock8(det) {
+function _scoreBlock8(det, mx) {
   const { skew_depth, direction, pivot, inversion } = det;
+  const ipZone    = mx?.ip_zone ?? null;
   const stopFlags = [];
 
-  if (skew_depth != null && skew_depth > 1.20) {
-    stopFlags.push('skew_depth > 1.20');
-  }
   const ip = inversion.implied_price;
   if (ip != null) {
     if (direction === 'long'  && ip < pivot.value) stopFlags.push('implied_price < pivot_low');
     if (direction === 'short' && ip > pivot.value) stopFlags.push('implied_price > pivot_high');
   }
   if (stopFlags.length > 0) {
-    return { score: 0, label: 'Аномальный Skew — СТОП', comment: _b8Comment(0), stopFlags };
+    return { score: 0, label: 'Аномальный Skew — СТОП', comment: _b8Comment(0, 'critical'), stopFlags };
   }
 
   if (skew_depth == null) {
-    return { score: 4, label: 'implied_price отсутствует — нейтральная оценка', comment: _b8Comment(4), stopFlags: [] };
+    return { score: 4, label: 'implied_price отсутствует — нейтральная оценка', comment: _b8Comment(4, null), stopFlags: [] };
   }
   const sd = skew_depth;
   let score;
@@ -469,7 +471,9 @@ function _scoreBlock8(det) {
   else if (sd <= 1.20) score = 1;
   else                 score = 0;
 
-  return { score, label: `skew_depth: ${sd.toFixed(3)}`, comment: _b8Comment(score), stopFlags: [] };
+  const zoneLabel = { strong: 'верхняя FVG', weak: 'нижняя FVG', outside: 'ниже FVG', critical: 'ниже Pivot' }[ipZone] || '';
+  const label = `skew_depth: ${sd.toFixed(3)}${zoneLabel ? ` · ${zoneLabel}` : ''}`;
+  return { score, label, comment: _b8Comment(score, ipZone), stopFlags: [] };
 }
 
 // ── Блок 9 — H1 Snapshot (18 pts) ────────────────────────────
@@ -594,7 +598,7 @@ function _stopFlags(b, mx, det) {
 }
 
 // ── Красные флаги ─────────────────────────────────────────────
-function _redFlags(b) {
+function _redFlags(b, mx) {
   const flags = [];
   if (b.block1.score <= 4 && b.block3.score <= 4) {
     flags.push('Пустой OI-ресурс: Energy ≤ 4 и OI Retention ≤ 4');
@@ -602,15 +606,24 @@ function _redFlags(b) {
   if (b.block6.flag === 'high_tail_risk') {
     flags.push('Кульминационный хвост: повышен риск глубокого теста');
   }
+  if ((mx?.ip_zone) === 'outside') {
+    const isWeak = b.block1.score <= 5 || b.block9.score <= 7 || b.total < 45;
+    if (isWeak) {
+      flags.push('implied_price ниже зоны FVG при слабом сетапе — риск провала уровня');
+    } else {
+      flags.push('⚠ implied_price ниже зоны FVG — тест может уйти глубже середины');
+    }
+  }
   return flags;
 }
 
 // ── Ожидаемый тест ───────────────────────────────────────────
-function _expectedTest(b, det) {
+function _expectedTest(b, det, mx) {
   const { upper_fvg, lower_fvg } = det.fvg;
   const pivotVal = det.pivot.value;
   const fvgSize  = upper_fvg - lower_fvg;
   const midFVG   = (upper_fvg + lower_fvg) / 2;
+  const ipZone   = mx?.ip_zone ?? null;
 
   const geo   = b.block6.score;
   const ret   = b.block3.score;
@@ -619,7 +632,23 @@ function _expectedTest(b, det) {
 
   let level, lo, hi, comment;
 
-  if (total >= 76 && geo >= 6 && h1 >= 13) {
+  // ip_zone overrides — приоритет над score-логикой
+  if (ipZone === 'critical') {
+    level   = 'Риск провала';
+    lo      = Math.round(pivotVal - fvgSize);
+    hi      = Math.round(pivotVal);
+    comment = 'implied_price ниже Pivot — провал зоны вероятен';
+  } else if (ipZone === 'outside') {
+    level   = 'Глубокий';
+    lo      = Math.round(lower_fvg - fvgSize * 0.5);
+    hi      = Math.round(lower_fvg);
+    comment = 'implied_price ниже FVG — тест к нижней границе и ниже';
+  } else if (ipZone === 'weak') {
+    level   = 'Глубокий';
+    lo      = Math.round(lower_fvg);
+    hi      = Math.round(midFVG);
+    comment = 'implied_price в нижней части FVG — тест ожидается вглубь зоны';
+  } else if (total >= 76 && geo >= 6 && h1 >= 13) {
     level   = 'Мелкий';
     lo      = Math.round(midFVG);
     hi      = Math.round(upper_fvg);
@@ -715,6 +744,9 @@ const _PROB = {
 
 function _buildConclusion(b, det, mx, sc) {
   if (sc.verdict === 'Не брать') {
+    if (sc.stopFlags.length > 0 && sc.total >= 60) {
+      return `Сетап технически сильный (${sc.total}/100), вход заблокирован стоп-флагом: ${sc.stopFlags.join('; ')}.`;
+    }
     return 'Инверсия без ресурса — OI слабый, разгрузка прошла, объём не подтвердил зону. Движение есть, но позиции под ним нет. Не брать.';
   }
 
@@ -779,7 +811,7 @@ function computeScore(m15, h1, det, mx) {
   const block4 = _scoreBlock4(mx, det);
   const block5 = _scoreBlock5(mx, det);
   const block6 = _scoreBlock6(mx, det);
-  const block8 = _scoreBlock8(det);
+  const block8 = _scoreBlock8(det, mx);
   const block9 = _scoreBlock9(mx, det.direction);
 
   const total = block1.score + block2.score + block3.score + block4.score
@@ -788,9 +820,9 @@ function computeScore(m15, h1, det, mx) {
   const blocks = { block1, block2, block3, block4, block5, block6, block8, block9, total };
 
   const stopFlags    = _stopFlags(blocks, mx, det);
-  const redFlags     = _redFlags(blocks);
+  const redFlags     = _redFlags(blocks, mx);
   const verdict      = _verdict(total, stopFlags);
-  const expectedTest = _expectedTest(blocks, det);
+  const expectedTest = _expectedTest(blocks, det, mx);
 
   const sc         = { blocks, total, stopFlags, redFlags, verdict, expectedTest };
   const conclusion = _buildConclusion(blocks, det, mx, sc);

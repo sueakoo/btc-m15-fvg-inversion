@@ -113,6 +113,26 @@ function computeMetrics(m15, h1, det) {
   const h1_limb       = h1TotalLiq > 0  ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
   const h1_cvd_sign   = h1CvdSum > 0 ? 1 : h1CvdSum < 0 ? -1 : 0;
 
+  // ── Позиция implied_price относительно FVG (Block 8, флаги, UI) ─
+  const _ip      = invCandle.implied_price ?? null;
+  const _midFvg  = (lower_fvg + upper_fvg) / 2;
+  const _pivot   = det.pivot.value;
+  const _dir     = det.direction;
+  let ip_zone = null;
+  if (_ip != null) {
+    if (_dir === 'long') {
+      if (_ip < _pivot)     ip_zone = 'critical';
+      else if (_ip < lower_fvg) ip_zone = 'outside';
+      else if (_ip < _midFvg)   ip_zone = 'weak';
+      else                      ip_zone = 'strong';
+    } else {
+      if (_ip > _pivot)     ip_zone = 'critical';
+      else if (_ip > upper_fvg) ip_zone = 'outside';
+      else if (_ip > _midFvg)   ip_zone = 'weak';
+      else                      ip_zone = 'strong';
+    }
+  }
+
   return {
     // ── OI ──────────────────────────────────
     gross_oi:          _r(gross_oi,        4),
@@ -131,6 +151,9 @@ function computeMetrics(m15, h1, det) {
     post_pivot_volume:   Math.round(post_pivot_volume),
     fvg_volume_share:    _r(fvg_volume_share,   3),
     final_volume_share:  _r(final_volume_share,  3),
+
+    // ── Позиция implied_price ────────────────
+    ip_zone,
 
     // ── Дополнительно для скоринга ──────────
     oi_window_count:   oiCandles.length,  // для Block 2 cap (≤3 → max 8)
