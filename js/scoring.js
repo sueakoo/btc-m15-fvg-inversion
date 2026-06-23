@@ -614,6 +614,9 @@ function _redFlags(b, mx) {
       flags.push('⚠ implied_price ниже зоны FVG — тест может уйти глубже середины');
     }
   }
+  if ((mx?.ip_zone) === 'strong' && b.block8.score === 0) {
+    flags.push('⚠ Высокий skew: implied_price значительно ниже цены инверсии — тест середины зоны вероятен');
+  }
   return flags;
 }
 
@@ -784,7 +787,11 @@ function _buildConclusion(b, det, mx, sc) {
 
   // Часть 3 — риски по приборам
   const risks = [];
-  if (b.block8.score <= 3)                              risks.push('skew высокий — implied_price далеко от инверсии, тест вглубь зоны вероятен');
+  const _ipz = mx?.ip_zone ?? null;
+  if (_ipz === 'outside')       risks.push('implied_price ниже зоны FVG — тест к нижней границе');
+  else if (_ipz === 'weak')     risks.push('implied_price в нижней части FVG — тест вглубь зоны');
+  else if (_ipz === 'strong' && b.block8.score === 0) risks.push('Высокий skew при хорошей позиции — тест середины зоны возможен');
+  else if (_ipz == null && b.block8.score <= 3)       risks.push('skew высокий — implied_price далеко от инверсии, тест вглубь зоны вероятен');
   if (b.block5.score <= 4)                              risks.push('зона не принята — возможен повторный проход');
   if (b.block3.score <= 5)                              risks.push('позиция слабо удержана — защиты мало');
   if (b.block6.flag === 'high_tail_risk')               risks.push('кульминационные хвосты — риск выноса');
