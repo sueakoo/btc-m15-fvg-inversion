@@ -12,7 +12,10 @@
   <div class="header">
     <div class="header-top">
       <h1>BTC M15 FVG Inversion Analyzer</h1>
-      <button class="btn-export" id="btnExport" onclick="exportSetups()">Экспорт сетапов (0)</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-export" id="btnSetups" onclick="openSetupsModal()">Сетапы (0)</button>
+        <button class="btn-export" id="btnExport" onclick="exportSetups()">Экспорт (0)</button>
+      </div>
     </div>
     <p>Вставьте данные свечей из X-RAY и нажмите Анализ</p>
   </div>
@@ -78,6 +81,18 @@
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="closeSaveModal()">Отмена</button>
       <button class="btn-modal-confirm" onclick="confirmSave()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Setups Modal ── -->
+<div class="modal-overlay" id="setupsModal">
+  <div class="modal modal-wide">
+    <div class="modal-title" id="setupsModalTitle">Сохранённые сетапы</div>
+    <div class="setups-list" id="setupsList"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeSetupsModal()">Закрыть</button>
+      <button class="btn-delete-all" id="btnDeleteAll" onclick="deleteAllSetups()">Удалить все</button>
     </div>
   </div>
 </div>
@@ -465,6 +480,7 @@ function confirmSave() {
   localStorage.setItem('btc_fvg_setups', JSON.stringify(all));
   closeSaveModal();
   updateExportBtn();
+  updateSetupsBtn();
   const btn = document.getElementById('btnSave');
   if (btn) { btn.textContent = '✓ Сохранено'; setTimeout(() => { btn.textContent = 'Сохранить сетап'; }, 2000); }
 }
@@ -484,10 +500,84 @@ function exportSetups() {
 function updateExportBtn() {
   const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
   const btn = document.getElementById('btnExport');
-  if (btn) btn.textContent = `Экспорт сетапов (${all.length})`;
+  if (btn) btn.textContent = `Экспорт (${all.length})`;
+}
+
+function updateSetupsBtn() {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  const btn = document.getElementById('btnSetups');
+  if (btn) btn.textContent = `Сетапы (${all.length})`;
+}
+
+function openSetupsModal() {
+  renderSetupsList();
+  document.getElementById('setupsModal').classList.add('visible');
+}
+
+function closeSetupsModal() {
+  document.getElementById('setupsModal').classList.remove('visible');
+}
+
+function renderSetupsList() {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  const container  = document.getElementById('setupsList');
+  const deleteBtn  = document.getElementById('btnDeleteAll');
+  const titleEl    = document.getElementById('setupsModalTitle');
+  titleEl.textContent = `Сохранённые сетапы (${all.length})`;
+
+  if (all.length === 0) {
+    container.innerHTML = '<div class="setups-empty">Нет сохранённых сетапов</div>';
+    deleteBtn.style.display = 'none';
+    return;
+  }
+
+  deleteBtn.style.display = '';
+  const vColors = {
+    'Сильный сетап':'#2ea043','Рабочий сетап':'#3fb950',
+    'Стандартная инверсия':'#d4a017','Ослабленная инверсия':'#e38a11','Не брать':'#c0392b',
+  };
+  container.innerHTML = all.map((s, i) => {
+    const d = new Date(s.saved_at);
+    const date = isNaN(d) ? '—' : d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const dir  = s.direction === 'long' ? 'LONG' : 'SHORT';
+    const dirColor = s.direction === 'long' ? '#3fb950' : '#e05555';
+    const vColor   = vColors[s.verdict] || '#888';
+    const outcome  = s.outcome ? ` · ${s.outcome}` : '';
+    return `
+      <div class="setup-item">
+        <div class="setup-item-info">
+          <div>
+            <span class="setup-item-dir" style="color:${dirColor}">${dir}</span>
+            <span class="setup-item-score" style="color:${vColor}">${s.total_score}/100 · ${s.verdict}${outcome}</span>
+          </div>
+          <div class="setup-item-date">${s.inversion_ts || '—'} · сохранён ${date}</div>
+        </div>
+        <button class="btn-delete-setup" onclick="deleteSetup(${i})" title="Удалить">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function deleteSetup(index) {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  all.splice(index, 1);
+  localStorage.setItem('btc_fvg_setups', JSON.stringify(all));
+  updateExportBtn();
+  updateSetupsBtn();
+  renderSetupsList();
+}
+
+function deleteAllSetups() {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  if (!all.length) return;
+  if (!confirm(`Удалить все ${all.length} сетапов? Отменить нельзя.`)) return;
+  localStorage.removeItem('btc_fvg_setups');
+  updateExportBtn();
+  updateSetupsBtn();
+  renderSetupsList();
 }
 
 updateExportBtn();
+updateSetupsBtn();
 </script>
 
 </body>
