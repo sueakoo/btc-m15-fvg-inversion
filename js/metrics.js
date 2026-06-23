@@ -28,6 +28,7 @@ function _r(n, dec = 4) {
 // ─────────────────────────────────────────────
 function computeMetrics(m15, h1, det) {
   const { lower_fvg, upper_fvg } = det.fvg;
+  const _dir       = det.direction;
   const oiCandles  = det.oiWindowIdx.map(i => m15[i]);
   const fvgCandles = det.fvgOverlapIdx.map(i => m15[i]);
   const invCandle  = m15[det.inversion.idx];
@@ -46,7 +47,9 @@ function computeMetrics(m15, h1, det) {
   let exitPreFvgSum = 0;
   for (const c of oiCandles) {
     const d = c.doi_pct ?? 0;
-    if (d < 0 && c.high != null && c.high < lower_fvg) exitPreFvgSum += d;
+    const preFvg = _dir === 'long' ? (c.high != null && c.high < lower_fvg)
+                                   : (c.low  != null && c.low  > upper_fvg);
+    if (d < 0 && preFvg) exitPreFvgSum += d;
   }
   let exitInFvgSum = 0;
   for (const c of fvgCandles) {
@@ -57,11 +60,15 @@ function computeMetrics(m15, h1, det) {
   const exit_in_fvg  = Math.abs(exitInFvgSum);
 
   // ── OI Placement (Block 2) ───────────────────────────────
-  // share_below: позитивный OI на свечах НИЖЕ FVG (high < lower_fvg)
+  // share_below: позитивный OI на свечах ПО НУЖНУЮ СТОРОНУ от FVG
+  // LONG: свеча целиком ниже FVG (high < lower_fvg)
+  // SHORT: свеча целиком выше FVG (low > upper_fvg)
   let belowSum = 0;
   for (const c of oiCandles) {
     const d = c.doi_pct ?? 0;
-    if (d > 0 && c.high != null && c.high < lower_fvg) belowSum += d;
+    const beyondFvg = _dir === 'long' ? (c.high != null && c.high < lower_fvg)
+                                      : (c.low  != null && c.low  > upper_fvg);
+    if (d > 0 && beyondFvg) belowSum += d;
   }
   // share_fvg: позитивный OI на свечах перекрытия FVG
   let fvgOiSum = 0;
@@ -117,7 +124,6 @@ function computeMetrics(m15, h1, det) {
   const _ip      = invCandle.implied_price ?? null;
   const _midFvg  = (lower_fvg + upper_fvg) / 2;
   const _pivot   = det.pivot.value;
-  const _dir     = det.direction;
   let ip_zone = null;
   if (_ip != null) {
     if (_dir === 'long') {
