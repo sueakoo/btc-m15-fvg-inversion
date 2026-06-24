@@ -143,7 +143,7 @@ function detect(candles) {
   // ── 5. Окна анализа ───────────────────────────────────────
   // OI window: pivot+1 → инверсия включительно
   const oiWindowIdx = [];
-  for (let i = pivotIdx + 1; i <= invIdx; i++) oiWindowIdx.push(i);
+  for (let i = pivotIdx; i <= invIdx; i++) oiWindowIdx.push(i);
 
   // FVG overlap window: после последнего n+1 → инверсия, только перекрывающие зону
   const fvgOverlapIdx = [];
