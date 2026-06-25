@@ -19,10 +19,11 @@ function _findAllFVGs(candles) {
   return list;
 }
 
-// Сливает идущие подряд FVG одного направления в одну зону,
-// НО только если их ценовые зоны перекрываются.
-// Два FVG на разных ценовых уровнях (без пересечения диапазонов) — это разные зоны,
-// сливать их нельзя: за основу берём первый FVG и останавливаемся.
+// Сливает идущие подряд FVG одного направления в одну зону.
+// Условия слияния (любое из двух):
+//   1. Ценовые зоны перекрываются.
+//   2. Тройки свечей перекрываются по индексам (FVG образованы в рамках одного движения).
+// Если ни одно условие не выполнено — стоп, берём накопленный результат.
 function _mergeConsecutiveFVGs(rawFVGs) {
   if (!rawFVGs.length) return null;
   const first = rawFVGs[0];
@@ -34,9 +35,9 @@ function _mergeConsecutiveFVGs(rawFVGs) {
   for (let i = 1; i < rawFVGs.length; i++) {
     const next = rawFVGs[i];
     if (next.type !== first.type) break; // другое направление = другое движение
-    // Сливаем только если ценовые зоны пересекаются
-    const zonesOverlap = lower_fvg <= next.upper && upper_fvg >= next.lower;
-    if (!zonesOverlap) break;
+    const zonesOverlap  = lower_fvg <= next.upper && upper_fvg >= next.lower;
+    const sharesCandles = next.idxNm1 < idxNp1; // тройки разделяют общие свечи
+    if (!zonesOverlap && !sharesCandles) break;
     upper_fvg = Math.max(upper_fvg, next.upper);
     lower_fvg = Math.min(lower_fvg, next.lower);
     idxNp1    = next.idxNp1;
