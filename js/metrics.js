@@ -66,8 +66,8 @@ function computeMetrics(m15, h1, det) {
   let belowSum = 0;
   for (const c of oiCandles) {
     const d = c.doi_pct ?? 0;
-    const beyondFvg = _dir === 'long' ? (c.high != null && c.high < lower_fvg)
-                                      : (c.low  != null && c.low  > upper_fvg);
+    const beyondFvg = _dir === 'long' ? (c.close != null && c.close < lower_fvg)
+                                      : (c.close != null && c.close > upper_fvg);
     if (d > 0 && beyondFvg) belowSum += d;
   }
   // share_fvg: позитивный OI на свечах перекрытия FVG
