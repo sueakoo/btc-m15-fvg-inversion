@@ -104,7 +104,7 @@ function _b8Comment(score, ipZone) {
     if (score === 7) return 'implied_price на уровне инверсии или выше — OI поддерживает зону снизу.';
     if (score === 6) return 'implied_price в верхней части FVG, близко к инверсии. Поддержка сильная.';
     if (score === 5) return 'implied_price в верхней части FVG. Тест верхней части зоны вероятен.';
-    return 'implied_price в верхней части FVG. Тест середины зоны возможен.';
+    return 'implied_price в верхней части FVG. Высокий skew — тест нижней части зоны вероятен.';
   }
   if (score >= 5) return 'OI поддерживает зону.';
   if (score >= 3) return 'Умеренное расхождение — тест вглубь зоны вероятен.';
@@ -615,7 +615,7 @@ function _redFlags(b, mx) {
     }
   }
   if ((mx?.ip_zone) === 'strong' && b.block8.score === 0) {
-    flags.push('⚠ Высокий skew: implied_price значительно ниже цены инверсии — тест середины зоны вероятен');
+    flags.push('⚠ Высокий skew: implied_price значительно ниже цены инверсии — тест вглубь зоны вероятен');
   }
   return flags;
 }
@@ -652,10 +652,10 @@ function _expectedTest(b, det, mx) {
     hi      = Math.round(midFVG);
     comment = 'implied_price в нижней части FVG — тест ожидается вглубь зоны';
   } else if (ipZone === 'strong' && b.block8.score === 0) {
-    level   = 'Средний';
-    lo      = Math.round(midFVG);
-    hi      = Math.round(upper_fvg);
-    comment = 'Высокий skew — тест середины зоны вероятен несмотря на хорошую позицию OI';
+    level   = 'Глубокий';
+    lo      = Math.round(lower_fvg);
+    hi      = Math.round(midFVG);
+    comment = 'Высокий skew — тест нижней части зоны вероятен несмотря на позицию OI';
   } else if (total >= 76 && geo >= 6 && h1 >= 13) {
     level   = 'Мелкий';
     lo      = Math.round(midFVG);
@@ -795,7 +795,7 @@ function _buildConclusion(b, det, mx, sc) {
   const _ipz = mx?.ip_zone ?? null;
   if (_ipz === 'outside')       risks.push('implied_price ниже зоны FVG — тест к нижней границе');
   else if (_ipz === 'weak')     risks.push('implied_price в нижней части FVG — тест вглубь зоны');
-  else if (_ipz === 'strong' && b.block8.score === 0) risks.push('Высокий skew при хорошей позиции — тест середины зоны возможен');
+  else if (_ipz === 'strong' && b.block8.score === 0) risks.push('Высокий skew — тест вглубь зоны вероятен несмотря на позицию OI');
   else if (_ipz == null && b.block8.score <= 3)       risks.push('skew высокий — implied_price далеко от инверсии, тест вглубь зоны вероятен');
   if (b.block5.score <= 4)                              risks.push('зона не принята — возможен повторный проход');
   if (b.block3.score <= 5)                              risks.push('позиция слабо удержана — защиты мало');
