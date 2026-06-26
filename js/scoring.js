@@ -598,6 +598,12 @@ function _scoreBlock9(mx, direction) {
     }
   }
 
+  // Limb-заметка для liq < 2%: ликвидации минимальны, но данные есть — показываем
+  if (liq < 2 && hasLimb) {
+    const dominant = against ? ownAdj : othAdj;
+    comment += ` Ликвидаций минимум — незначительный перевес на стороне ${dominant} позиций.`;
+  }
+
   // CVD уточнение ±2 при пограничных значениях
   if (h1_cvd_sign !== 0 && score > 0 && score < 18) {
     const borderDoi = doi >= 0.17 && doi < 0.25;
