@@ -70,11 +70,11 @@ function computeMetrics(m15, h1, det) {
                                       : (c.close != null && c.close > upper_fvg);
     if (d > 0 && beyondFvg) belowSum += d;
   }
-  // share_fvg: позитивный OI на свечах перекрытия FVG
+  // share_fvg: OI на свечах где close внутри зоны FVG (lower_fvg ≤ close ≤ upper_fvg)
   let fvgOiSum = 0;
-  for (const c of fvgCandles) {
+  for (const c of oiCandles) {
     const d = c.doi_pct ?? 0;
-    if (d > 0) fvgOiSum += d;
+    if (d > 0 && c.close != null && c.close >= lower_fvg && c.close <= upper_fvg) fvgOiSum += d;
   }
   // share_inv: доля OI на свече инверсии
   const inv_doi = invCandle.doi_pct ?? 0;
