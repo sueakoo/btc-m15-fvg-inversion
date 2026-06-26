@@ -651,6 +651,11 @@ function _expectedTest(b, det, mx) {
     lo      = Math.round(lower_fvg);
     hi      = Math.round(midFVG);
     comment = 'implied_price в нижней части FVG — тест ожидается вглубь зоны';
+  } else if (ipZone === 'strong' && b.block8.score === 0) {
+    level   = 'Средний';
+    lo      = Math.round(midFVG);
+    hi      = Math.round(upper_fvg);
+    comment = 'Высокий skew — тест середины зоны вероятен несмотря на хорошую позицию OI';
   } else if (total >= 76 && geo >= 6 && h1 >= 13) {
     level   = 'Мелкий';
     lo      = Math.round(midFVG);
