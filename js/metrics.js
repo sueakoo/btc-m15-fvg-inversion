@@ -96,7 +96,7 @@ function computeMetrics(m15, h1, det) {
 
   // ── H1 агрегаты (Block 9) ────────────────────────────────
   // H1 окно: H1-свечи, чей период пересекается с [pivot+1 .. инверсия]
-  const pivotNextCandle = m15[det.pivot.idx];
+  const pivotNextCandle = m15[det.pivot.idx + 1];
   const tsStart = _parseTs(pivotNextCandle?.ts);
   const tsEnd   = _parseTs(invCandle.ts);
 
