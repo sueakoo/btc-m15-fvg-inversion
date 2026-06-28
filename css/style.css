@@ -147,52 +147,11 @@ body {
 }
 .meta-tag b { color: #aaa; }
 
-/* ── CVD Flow Row ── */
-.cvd-flow-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #222;
-  flex-wrap: wrap;
-}
-.cvd-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  min-width: 68px;
-}
-.cvd-cell-long    { background: #0d2e0d; border: 1px solid #1e4a1e; }
-.cvd-cell-short   { background: #2e0d0d; border: 1px solid #4a1e1e; }
-.cvd-cell-neutral { background: #181818; border: 1px solid #2a2a2a; }
-.cvd-big-arrow { font-size: 22px; font-weight: 700; line-height: 1; }
-.cvd-cell-long    .cvd-big-arrow { color: #3fb950; }
-.cvd-cell-short   .cvd-big-arrow { color: #e05555; }
-.cvd-cell-neutral .cvd-big-arrow { color: #555; }
-.cvd-cell-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
-.cvd-cell-long    .cvd-cell-label { color: #3fb950; }
-.cvd-cell-short   .cvd-cell-label { color: #e05555; }
-.cvd-cell-neutral .cvd-cell-label { color: #555; }
-.cvd-cell-sub { font-size: 10px; color: #444; }
-.cvd-connector { font-size: 18px; font-weight: 700; flex: 0 0 auto; }
-.cvd-conn-match   { color: #3fb950; }
-.cvd-conn-diver   { color: #e05555; }
-.cvd-conn-neutral { color: #333; }
-.cvd-status {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 5px;
-  white-space: nowrap;
-}
-.cvd-st-match   { background: #0d2e0d; color: #3fb950; border: 1px solid #1e4a1e; }
-.cvd-st-diver   { background: #2e0d0d; color: #e05555; border: 1px solid #4a1e1e; }
-.cvd-st-neutral { background: #181818; color: #555;    border: 1px solid #2a2a2a; }
+/* ── Direction + CVD badge stack ── */
+.dir-cvd-stack { display: flex; flex-direction: column; gap: 4px; }
+.badge-cvd-ok      { background: #0d2e0d; color: #3fb950; border: 1px solid #1e4a1e; }
+.badge-cvd-warn    { background: #2e0d0d; color: #e05555; border: 1px solid #4a1e1e; }
+.badge-cvd-neutral { background: #1a1a1a; color: #555;    border: 1px solid #2a2a2a; }
 
 /* ── Section title ── */
 .section-title {
