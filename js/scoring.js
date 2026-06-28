@@ -502,11 +502,29 @@ function _scoreBlock9(mx, direction) {
   const action = isLong ? 'покупки'          : 'продажи';
 
   let score, label, comment, stopFlag = false;
+  let cvdExplicit = false;
 
   if (liq < 2) {
     if (doi >= 0.20) {
-      score = 18; label = 'Чистый рост: новый OI без стопов';
-      comment = 'H1 чистый — новый OI без ликвидаций. Старший таймфрейм полностью подтверждает.';
+      if (_cvdWithDir(h1_cvd_sign, direction)) {
+        score   = 18;
+        label   = 'Чистый рост: OI набран в направлении сделки';
+        comment = 'H1 чистый — новый OI без ликвидаций, поток подтверждает направление.';
+      } else {
+        cvdExplicit = true;
+        const limbAgainstStrong = hasLimb
+          && _limbAgainst(h1_limb_pct, direction)
+          && Math.abs(h1_limb_pct) > 50;
+        if (limbAgainstStrong) {
+          score   = 11;
+          label   = 'Двойной сигнал против: поток и ликвидации против направления';
+          comment = `OI на H1 рос при давлении потока против сделки. ${ownPos} ликвидировались с перевесом — H1 системно противостоит инверсии.`;
+        } else {
+          score   = 14;
+          label   = 'Рост OI при потоке против направления';
+          comment = `OI на H1 вырос, но CVD давил против сделки — возможен набор ${othAdj} позиций.`;
+        }
+      }
     } else if (doi >= 0) {
       score = 13; label = 'Слабый рост: OI почти не появился';
       comment = 'Слабый прирост OI без ликвидаций. H1 нейтрален — прямого подтверждения нет.';
@@ -599,13 +617,13 @@ function _scoreBlock9(mx, direction) {
   }
 
   // Limb-заметка для liq < 2%: ликвидации минимальны, но данные есть — показываем
-  if (liq < 2 && hasLimb) {
+  if (liq < 2 && hasLimb && !cvdExplicit) {
     const dominant = against ? ownAdj : othAdj;
     comment += ` Ликвидаций минимум — незначительный перевес на стороне ${dominant} позиций.`;
   }
 
   // CVD уточнение ±2 при пограничных значениях
-  if (h1_cvd_sign !== 0 && score > 0 && score < 18) {
+  if (!cvdExplicit && h1_cvd_sign !== 0 && score > 0 && score < 18) {
     const borderDoi = doi >= 0.17 && doi < 0.25;
     const borderLiq = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
     if (borderDoi || borderLiq) {
