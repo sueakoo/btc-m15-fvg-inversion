@@ -777,7 +777,11 @@ function _expectedTest(b, det, mx) {
     lo      = Math.round(lower_fvg);
     hi      = Math.round(midFVG);
     comment = 'Высокий skew — тест нижней части зоны вероятен несмотря на позицию OI';
-  } else if (total >= 76 && geo >= 6 && h1 >= 13) {
+  } else if (total >= 76 && geo >= 6 && h1 >= 13
+      && b.block8.score > 2
+      && (mx?.share_fvg ?? 0) > 0
+      && (mx?.retention_ratio ?? 0) >= 0.40
+      && b.block4.score > 6) {
     level   = 'Мелкий';
     lo      = Math.round(midFVG);
     hi      = Math.round(upper_fvg);
