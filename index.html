@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782678566">
+  <link rel="stylesheet" href="css/style.css?v=1782678922">
 </head>
 <body>
 <div class="app">
@@ -15,8 +15,6 @@
       <div style="display:flex;gap:8px">
         <button class="btn-export" id="btnSetups" onclick="openSetupsModal()">Сетапы (0)</button>
         <button class="btn-export" id="btnExport" onclick="exportSetups()">Экспорт (0)</button>
-        <button class="btn-export" onclick="document.getElementById('importInput').click()">Импорт</button>
-        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importSetups(event)">
       </div>
     </div>
     <p>Вставьте данные свечей из X-RAY и нажмите Анализ</p>
@@ -103,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782678566"></script>
-<script src="js/detection.js?v=1782678566"></script>
-<script src="js/metrics.js?v=1782678566"></script>
-<script src="js/scoring.js?v=1782678566"></script>
+<script src="js/parser.js?v=1782678922"></script>
+<script src="js/detection.js?v=1782678922"></script>
+<script src="js/metrics.js?v=1782678922"></script>
+<script src="js/scoring.js?v=1782678922"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -611,26 +609,6 @@ function deleteSetup(index) {
   updateExportBtn();
   updateSetupsBtn();
   renderSetupsList();
-}
-
-function importSetups(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data)) { alert('Неверный формат файла — ожидается массив сетапов'); return; }
-      const existing = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
-      const merged = [...existing, ...data];
-      localStorage.setItem('btc_fvg_setups', JSON.stringify(merged));
-      updateExportBtn();
-      updateSetupsBtn();
-      alert(`Загружено ${data.length} сетапов. Всего: ${merged.length}`);
-    } catch { alert('Ошибка чтения файла — убедитесь что это корректный JSON'); }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
 }
 
 function deleteAllSetups() {
