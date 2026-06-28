@@ -940,6 +940,39 @@ function _buildConclusion(b, det, mx, sc) {
   return `${intro} ${confirmStr} ${h1Str} ${prob} ${riskStr} ${testStr}`.trim();
 }
 
+// ── Вероятность "без теста" ───────────────────
+function _noTestProbability(b, mx) {
+  const scenario  = b.block4.scenario  || 'no_position';
+  const shareInv  = mx?.share_inv        ?? 0;
+  const oiWindow  = mx?.oi_window_count  ?? 99;
+  const h1Doi     = mx?.h1_doi_pct       ?? 0;
+  const netOi     = mx?.net_oi           ?? 0;
+  const retention = mx?.retention_ratio  ?? 0;
+
+  // Тип 1 — сильный импульс, цена ушла без теста
+  if (['initiative', 'absorption'].includes(scenario)
+      && shareInv >= 0.25
+      && oiWindow <= 6
+      && h1Doi    >= 0.30) {
+    return 'высокая';
+  }
+
+  // Тип 2 — пустой ход, нет основания для теста
+  if (['no_position', 'empty'].includes(scenario)
+      && netOi < 0
+      && (retention < 0 || b.block3.score <= 3)
+      && b.block9.score <= 5) {
+    return 'высокая';
+  }
+
+  // Средняя — импульс умеренный, тест возможен позже
+  if (shareInv >= 0.15 && oiWindow <= 8) {
+    return 'средняя';
+  }
+
+  return null;
+}
+
 // ─────────────────────────────────────────────
 // Главная функция скоринга
 // ─────────────────────────────────────────────
@@ -965,6 +998,7 @@ function computeScore(m15, h1, det, mx) {
 
   const sc         = { blocks, total, stopFlags, redFlags, verdict, expectedTest };
   const conclusion = _buildConclusion(blocks, det, mx, sc);
+  const noTestProb = _noTestProbability(blocks, mx);
 
-  return { blocks, total, stopFlags, redFlags, verdict, expectedTest, conclusion };
+  return { blocks, total, stopFlags, redFlags, verdict, expectedTest, conclusion, noTestProb };
 }
