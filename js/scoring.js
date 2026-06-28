@@ -673,7 +673,7 @@ function _stopFlags(b, mx, det) {
 }
 
 // ── Красные флаги ─────────────────────────────────────────────
-function _redFlags(b, mx) {
+function _redFlags(b, mx, det) {
   const flags = [];
   if (b.block1.score <= 4 && b.block3.score <= 4) {
     flags.push('Пустой OI-ресурс: Energy ≤ 4 и OI Retention ≤ 4');
@@ -689,8 +689,45 @@ function _redFlags(b, mx) {
       flags.push('⚠ implied_price ниже зоны FVG — тест может уйти глубже середины');
     }
   }
-  if ((mx?.ip_zone) === 'strong' && b.block8.score === 0) {
+  // C2 — block8=0, расширено с ip_zone=strong на weak (outside/critical имеют свои флаги)
+  if (b.block8.score === 0
+      && !(b.block8.stopFlags?.length > 0)
+      && !['outside', 'critical'].includes(mx?.ip_zone)) {
     flags.push('⚠ Высокий skew: implied_price значительно ниже цены инверсии — тест вглубь зоны вероятен');
+  }
+  // C1 — слабая механика захвата при высоком балле
+  if (b.block4.score <= 6 && b.total >= 70) {
+    flags.push('Слабая механика захвата — инверсионная свеча не набрала позицию при высоком балле. Риск пробоя зоны при тесте повышен');
+  }
+  // C3 — OI не концентрировался в FVG (тест пройдёт зону насквозь)
+  if ((mx?.gross_oi ?? 0) > 0 && (mx?.share_fvg ?? 0) === 0 && b.total >= 60) {
+    flags.push('OI не концентрировался в FVG — тест пройдёт через зону прежде чем отобьётся. Вход от нижней границы');
+  }
+  // C4 — FVG без свежего защитника
+  if (b.block4.score <= 6 && b.block9.score >= 16) {
+    flags.push('Позиция набрана до инверсии — в момент пересечения FVG нового покупателя не было. При тесте зоны риск пробоя повышен — защитника здесь нет');
+  }
+  // C5 — высокий ресурс без захвата
+  if (b.block1.score >= 12 && b.block4.score <= 6) {
+    flags.push('Высокий ресурс инверсии без захвата позиции — OI накоплен агрессивно, но инверсионная свеча не набрала позицию. Сильная предпосылка без структурного обязательства');
+  }
+  // C6 — минимальный ресурс, если block3 в порядке (иначе уже есть "Пустой OI-ресурс")
+  if (b.block1.score <= 4 && b.block3.score > 4) {
+    flags.push('Ресурс инверсии минимальный — OI при движении через FVG почти отсутствовал. Зона без позиционной основы');
+  }
+  // C7 — CVD против направления при высоком балле (требует det)
+  if (mx?.h1_cvd_sign !== 0
+      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
+      && b.total >= 65) {
+    flags.push('⚠ H1 CVD против направления: поток на старшем таймфрейме давил против сделки — рост OI мог быть набором противоположной стороны');
+  }
+  // C8 — тройная слабость (требует det)
+  if (b.block4.score <= 6
+      && mx?.h1_cvd_sign !== 0
+      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
+      && _limbAgainst(mx?.h1_limb_pct, det?.direction)
+      && Math.abs(mx?.h1_limb_pct ?? 0) > 50) {
+    flags.push('Тройная слабость: нет захвата инверсии, H1 CVD против направления, перевес ликвидаций против — максимальный риск провала при тесте');
   }
   return flags;
 }
@@ -907,7 +944,7 @@ function computeScore(m15, h1, det, mx) {
   const blocks = { block1, block2, block3, block4, block5, block6, block8, block9, total };
 
   const stopFlags    = _stopFlags(blocks, mx, det);
-  const redFlags     = _redFlags(blocks, mx);
+  const redFlags     = _redFlags(blocks, mx, det);
   const verdict      = _verdict(total, stopFlags, block4.score);
   const expectedTest = _expectedTest(blocks, det, mx);
 
