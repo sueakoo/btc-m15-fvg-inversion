@@ -669,6 +669,15 @@ function _stopFlags(b, mx, det) {
     flags.push('Системная пустота');
   }
 
+  if (b.block4.score <= 6
+      && (mx?.h1_cvd_sign ?? 0) !== 0
+      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
+      && _limbAgainst(mx?.h1_limb_pct, det?.direction)
+      && Math.abs(mx?.h1_limb_pct ?? 0) > 50
+      && b.total >= 70) {
+    flags.push('Тройная слабость при высоком балле — сетап заблокирован');
+  }
+
   return flags;
 }
 
