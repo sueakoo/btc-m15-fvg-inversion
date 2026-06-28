@@ -75,6 +75,10 @@
       </select>
     </div>
     <div class="modal-field">
+      <label>Цена теста (фактическая)</label>
+      <input type="text" id="saveActualTestPrice" placeholder="необязательно">
+    </div>
+    <div class="modal-field">
       <label>Заметка</label>
       <textarea id="saveNotes" rows="2" placeholder="необязательно"></textarea>
     </div>
@@ -97,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782659114"></script>
-<script src="js/detection.js?v=1782659114"></script>
-<script src="js/metrics.js?v=1782659114"></script>
-<script src="js/scoring.js?v=1782659114"></script>
+<script src="js/parser.js?v=1782659506"></script>
+<script src="js/detection.js?v=1782659506"></script>
+<script src="js/metrics.js?v=1782659506"></script>
+<script src="js/scoring.js?v=1782659506"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -411,6 +415,7 @@ function openSaveModal() {
   document.getElementById('saveRRRow').style.display = 'none';
   document.getElementById('saveSeniorCtx').value = '';
   document.getElementById('saveTestDepth').value = '';
+  document.getElementById('saveActualTestPrice').value = '';
   document.getElementById('saveNotes').value = '';
   document.getElementById('saveModal').classList.add('visible');
 }
@@ -425,11 +430,12 @@ function onOutcomeChange() {
 }
 
 function confirmSave() {
-  const outcome    = document.getElementById('saveOutcome').value;
-  const rr         = document.getElementById('saveRR').value.trim();
-  const seniorCtx  = document.getElementById('saveSeniorCtx').value;
-  const testDepth  = document.getElementById('saveTestDepth').value;
-  const notes      = document.getElementById('saveNotes').value.trim();
+  const outcome         = document.getElementById('saveOutcome').value;
+  const rr              = document.getElementById('saveRR').value.trim();
+  const seniorCtx       = document.getElementById('saveSeniorCtx').value;
+  const testDepth       = document.getElementById('saveTestDepth').value;
+  const actualTestPrice = document.getElementById('saveActualTestPrice').value.trim();
+  const notes           = document.getElementById('saveNotes').value.trim();
   if (!outcome || !testDepth) { alert('Укажите исход и глубину теста'); return; }
 
   const sc = _lastSc, det = _lastDet, mx = _lastMx;
@@ -473,6 +479,16 @@ function confirmSave() {
     h1_doi_pct: mx.h1_doi_pct, h1_liqshare_pct: mx.h1_liqshare_pct,
     h1_limb_pct: mx.h1_limb_pct, h1_cvd_sign: mx.h1_cvd_sign,
     oi_window_count: mx.oi_window_count,
+    h1_candle_count: mx.h1_candle_count ?? null,
+    // Новые поля
+    ip_zone: mx.ip_zone ?? null,
+    block3_scenario: b.block3.scenario ?? null,
+    exit_pre_fvg: mx.exit_pre_fvg ?? null,
+    exit_in_fvg: mx.exit_in_fvg ?? null,
+    body_pct_inv: mx.inv?.body_pct ?? null,
+    cvd_sign_inv: mx.inv?.cvd_sign ?? null,
+    actual_test_price: actualTestPrice ? parseFloat(actualTestPrice) || actualTestPrice : null,
+    no_test_prob: sc.noTestProb ?? null,
   };
 
   const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
