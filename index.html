@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782659506"></script>
-<script src="js/detection.js?v=1782659506"></script>
-<script src="js/metrics.js?v=1782659506"></script>
-<script src="js/scoring.js?v=1782659506"></script>
+<script src="js/parser.js?v=1782660731"></script>
+<script src="js/detection.js?v=1782660731"></script>
+<script src="js/metrics.js?v=1782660731"></script>
+<script src="js/scoring.js?v=1782660731"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -210,6 +210,38 @@ function buildReport(sc, det, mx) {
   const dirClass = det.direction === 'long' ? 'badge-long' : 'badge-short';
   const dirText  = det.direction === 'long' ? 'LONG' : 'SHORT';
 
+  // CVD Flow indicator
+  const isLong   = det.direction === 'long';
+  const cvdSign  = mx.h1_cvd_sign ?? 0;
+  const cvdNeutral  = cvdSign === 0;
+  const cvdWithDir  = !cvdNeutral && (isLong ? cvdSign > 0 : cvdSign < 0);
+  const dirArrow    = isLong ? '▲' : '▼';
+  const dirCellCls  = isLong ? 'cvd-cell-long' : 'cvd-cell-short';
+  const cvdArrow    = cvdNeutral ? '—' : (cvdSign > 0 ? '▲' : '▼');
+  const cvdSubText  = cvdNeutral ? 'нейтрален' : (cvdSign > 0 ? 'лонг агрессия' : 'шорт агрессия');
+  const cvdCellCls  = cvdNeutral ? 'cvd-cell-neutral'
+                    : cvdWithDir  ? dirCellCls
+                    : (isLong ? 'cvd-cell-short' : 'cvd-cell-long');
+  const connChar    = cvdNeutral ? '·' : cvdWithDir ? '→' : '↕';
+  const connCls     = cvdNeutral ? 'cvd-conn-neutral' : cvdWithDir ? 'cvd-conn-match' : 'cvd-conn-diver';
+  const stText      = cvdNeutral ? '— CVD нейтрален' : cvdWithDir ? '✓ Поток подтверждает' : '✕ Дивергенция';
+  const stCls       = cvdNeutral ? 'cvd-st-neutral' : cvdWithDir ? 'cvd-st-match' : 'cvd-st-diver';
+  const cvdFlowRow  = `
+    <div class="cvd-flow-row">
+      <div class="cvd-cell ${dirCellCls}">
+        <div class="cvd-big-arrow">${dirArrow}</div>
+        <div class="cvd-cell-label">${dirText}</div>
+        <div class="cvd-cell-sub">цена</div>
+      </div>
+      <div class="cvd-connector ${connCls}">${connChar}</div>
+      <div class="cvd-cell ${cvdCellCls}">
+        <div class="cvd-big-arrow">${cvdArrow}</div>
+        <div class="cvd-cell-label">H1 CVD</div>
+        <div class="cvd-cell-sub">${cvdSubText}</div>
+      </div>
+      <div class="cvd-status ${stCls}">${stText}</div>
+    </div>`;
+
   // FVG размер
   const fvgSize = det.fvg.imb_range_pct < 0.15 ? 'малый'
                 : det.fvg.imb_range_pct <= 0.40 ? 'средний' : 'большой';
@@ -230,6 +262,7 @@ function buildReport(sc, det, mx) {
         <span class="meta-tag">Pivot <b>${det.pivot.value}</b></span>
         <span class="meta-tag">Инверсия <b>${det.inversion.close}</b></span>
       </div>
+      ${cvdFlowRow}
     </div>`;
 
   // ── Итоговое заключение ───────────────────────────────────
