@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782661913"></script>
-<script src="js/detection.js?v=1782661913"></script>
-<script src="js/metrics.js?v=1782661913"></script>
-<script src="js/scoring.js?v=1782661913"></script>
+<script src="js/parser.js?v=1782662339"></script>
+<script src="js/detection.js?v=1782662339"></script>
+<script src="js/metrics.js?v=1782662339"></script>
+<script src="js/scoring.js?v=1782662339"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -215,8 +215,9 @@ function buildReport(sc, det, mx) {
   const cvdSign     = mx.h1_cvd_sign ?? 0;
   const cvdNeutral  = cvdSign === 0;
   const cvdWithDir  = !cvdNeutral && (isLong ? cvdSign > 0 : cvdSign < 0);
-  const cvdBadgeCls = cvdNeutral ? 'badge-cvd-neutral' : cvdWithDir ? 'badge-cvd-ok' : 'badge-cvd-warn';
+  const cvdBadgeCls = cvdNeutral ? 'badge-cvd-neutral' : (cvdSign > 0 ? 'badge-cvd-long' : 'badge-cvd-short');
   const cvdBadgeTxt = cvdNeutral ? '— H1 CVD' : (cvdSign > 0 ? '▲ H1 CVD лонг' : '▼ H1 CVD шорт');
+  const cvdStatusCls = cvdNeutral ? 'cvd-status-neutral' : (cvdWithDir ? 'cvd-status-ok' : 'cvd-status-warn');
 
   // FVG размер
   const fvgSize = det.fvg.imb_range_pct < 0.15 ? 'малый'
@@ -240,7 +241,7 @@ function buildReport(sc, det, mx) {
       </div>
       <div class="cvd-row">
         <span class="badge ${cvdBadgeCls}">${cvdBadgeTxt}</span>
-        <span class="cvd-row-status ${cvdBadgeCls === 'badge-cvd-ok' ? 'cvd-status-ok' : cvdBadgeCls === 'badge-cvd-warn' ? 'cvd-status-warn' : 'cvd-status-neutral'}">${cvdNeutral ? '— CVD нейтрален' : cvdWithDir ? '✓ Поток подтверждает направление' : '✕ Дивергенция — поток против'}</span>
+        <span class="cvd-row-status ${cvdStatusCls}">${cvdNeutral ? '— CVD нейтрален' : cvdWithDir ? '✓ Поток подтверждает направление' : '✕ Дивергенция — поток против'}</span>
       </div>
     </div>`;
 

@@ -148,8 +148,8 @@ body {
 .meta-tag b { color: #aaa; }
 
 /* ── CVD row ── */
-.badge-cvd-ok      { background: #0d2e0d; color: #3fb950; border: 1px solid #1e4a1e; }
-.badge-cvd-warn    { background: #2e0d0d; color: #e05555; border: 1px solid #4a1e1e; }
+.badge-cvd-long    { background: #0d2e0d; color: #3fb950; border: 1px solid #1e4a1e; }
+.badge-cvd-short   { background: #2e0d0d; color: #e05555; border: 1px solid #4a1e1e; }
 .badge-cvd-neutral { background: #1a1a1a; color: #555;    border: 1px solid #2a2a2a; }
 .cvd-row {
   display: flex;
