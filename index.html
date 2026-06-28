@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782661707"></script>
-<script src="js/detection.js?v=1782661707"></script>
-<script src="js/metrics.js?v=1782661707"></script>
-<script src="js/scoring.js?v=1782661707"></script>
+<script src="js/parser.js?v=1782661913"></script>
+<script src="js/detection.js?v=1782661913"></script>
+<script src="js/metrics.js?v=1782661913"></script>
+<script src="js/scoring.js?v=1782661913"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -233,13 +233,14 @@ function buildReport(sc, det, mx) {
         <div class="total-bar-fill" style="width: ${sc.total}%; background: ${vColor}"></div>
       </div>
       <div class="meta-row">
-        <div class="dir-cvd-stack">
-          <span class="badge ${dirClass}">${dirText}</span>
-          <span class="badge ${cvdBadgeCls}">${cvdBadgeTxt}</span>
-        </div>
+        <span class="badge ${dirClass}">${dirText}</span>
         <span class="meta-tag">FVG <b>${det.fvg.lower_fvg} – ${det.fvg.upper_fvg}</b> · ${det.fvg.imb_range_pct}% (${fvgSize})</span>
         <span class="meta-tag">Pivot <b>${det.pivot.value}</b></span>
         <span class="meta-tag">Инверсия <b>${det.inversion.close}</b></span>
+      </div>
+      <div class="cvd-row">
+        <span class="badge ${cvdBadgeCls}">${cvdBadgeTxt}</span>
+        <span class="cvd-row-status ${cvdBadgeCls === 'badge-cvd-ok' ? 'cvd-status-ok' : cvdBadgeCls === 'badge-cvd-warn' ? 'cvd-status-warn' : 'cvd-status-neutral'}">${cvdNeutral ? '— CVD нейтрален' : cvdWithDir ? '✓ Поток подтверждает направление' : '✕ Дивергенция — поток против'}</span>
       </div>
     </div>`;
 
