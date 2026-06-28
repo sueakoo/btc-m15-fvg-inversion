@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782662534">
+  <link rel="stylesheet" href="css/style.css?v=1782678566">
 </head>
 <body>
 <div class="app">
@@ -15,6 +15,8 @@
       <div style="display:flex;gap:8px">
         <button class="btn-export" id="btnSetups" onclick="openSetupsModal()">Сетапы (0)</button>
         <button class="btn-export" id="btnExport" onclick="exportSetups()">Экспорт (0)</button>
+        <button class="btn-export" onclick="document.getElementById('importInput').click()">Импорт</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importSetups(event)">
       </div>
     </div>
     <p>Вставьте данные свечей из X-RAY и нажмите Анализ</p>
@@ -101,10 +103,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782662534"></script>
-<script src="js/detection.js?v=1782662534"></script>
-<script src="js/metrics.js?v=1782662534"></script>
-<script src="js/scoring.js?v=1782662534"></script>
+<script src="js/parser.js?v=1782678566"></script>
+<script src="js/detection.js?v=1782678566"></script>
+<script src="js/metrics.js?v=1782678566"></script>
+<script src="js/scoring.js?v=1782678566"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -567,18 +569,35 @@ function renderSetupsList() {
   container.innerHTML = all.map((s, i) => {
     const d = new Date(s.saved_at);
     const date = isNaN(d) ? '—' : d.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
-    const dir  = s.direction === 'long' ? 'LONG' : 'SHORT';
+    const dir      = s.direction === 'long' ? 'LONG' : 'SHORT';
     const dirColor = s.direction === 'long' ? '#3fb950' : '#e05555';
     const vColor   = vColors[s.verdict] || '#888';
-    const outcome  = s.outcome ? ` · ${s.outcome}` : '';
+    const outcomeColor = s.outcome === 'тейк' ? '#3fb950' : s.outcome === 'стоп' ? '#e05555' : '#666';
+    const cvdIcon  = s.h1_cvd_sign === 1 ? '▲' : s.h1_cvd_sign === -1 ? '▼' : '—';
+    const cvdColor = s.h1_cvd_sign === 1 ? '#3fb950' : s.h1_cvd_sign === -1 ? '#e05555' : '#444';
+    const testMatch = s.actual_test === s.expected_test_level
+      ? `<span style="color:#3fb950">${s.actual_test}</span>`
+      : `<span style="color:#d4a017">${s.actual_test || '—'}</span><span style="color:#444"> (ожид. ${s.expected_test_level || '—'})</span>`;
+    const b4 = s.block4_scenario ? s.block4_scenario.split(' ').slice(0,2).join(' ') : '—';
     return `
       <div class="setup-item">
         <div class="setup-item-info">
-          <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="setup-item-dir" style="color:${dirColor}">${dir}</span>
-            <span class="setup-item-score" style="color:${vColor}">${s.total_score}/100 · ${s.verdict}${outcome}</span>
+            <span class="setup-item-score" style="color:${vColor}">${s.total_score}/100 · ${s.verdict}</span>
+            <span style="color:${outcomeColor};font-size:11px;font-weight:700">${s.outcome || '—'}</span>
+            ${s.rr ? `<span style="color:#888;font-size:11px">${s.rr}</span>` : ''}
           </div>
-          <div class="setup-item-date">${s.inversion_ts || '—'} · сохранён ${date}</div>
+          <div style="display:flex;gap:10px;margin-top:3px;flex-wrap:wrap">
+            <span style="font-size:11px;color:#555">${s.inversion_ts || '—'}</span>
+            <span style="font-size:11px;color:#444">H1 CVD <span style="color:${cvdColor}">${cvdIcon}</span></span>
+            <span style="font-size:11px;color:#444">ip: <span style="color:#888">${s.ip_zone || '—'}</span></span>
+            <span style="font-size:11px;color:#444">${b4}</span>
+          </div>
+          <div style="margin-top:3px;font-size:11px;color:#555">
+            Тест: ${testMatch}
+            ${s.actual_test_price ? `<span style="color:#666"> · ${s.actual_test_price}</span>` : ''}
+          </div>
         </div>
         <button class="btn-delete-setup" onclick="deleteSetup(${i})" title="Удалить">✕</button>
       </div>`;
@@ -592,6 +611,26 @@ function deleteSetup(index) {
   updateExportBtn();
   updateSetupsBtn();
   renderSetupsList();
+}
+
+function importSetups(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) { alert('Неверный формат файла — ожидается массив сетапов'); return; }
+      const existing = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+      const merged = [...existing, ...data];
+      localStorage.setItem('btc_fvg_setups', JSON.stringify(merged));
+      updateExportBtn();
+      updateSetupsBtn();
+      alert(`Загружено ${data.length} сетапов. Всего: ${merged.length}`);
+    } catch { alert('Ошибка чтения файла — убедитесь что это корректный JSON'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 function deleteAllSetups() {
