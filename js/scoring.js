@@ -762,9 +762,9 @@ function _expectedTest(b, det, mx) {
 }
 
 // ── Вердикт ──────────────────────────────────────────────────
-function _verdict(total, stopFlags) {
+function _verdict(total, stopFlags, b4Score) {
   if (stopFlags.length > 0 || total < 30) return 'Не брать';
-  if (total >= 76)  return 'Сильный сетап';
+  if (total >= 76)  return b4Score <= 6 ? 'Рабочий сетап' : 'Сильный сетап';
   if (total >= 60)  return 'Рабочий сетап';
   if (total >= 45)  return 'Стандартная инверсия';
   if (total >= 30)  return 'Ослабленная инверсия';
@@ -908,7 +908,7 @@ function computeScore(m15, h1, det, mx) {
 
   const stopFlags    = _stopFlags(blocks, mx, det);
   const redFlags     = _redFlags(blocks, mx);
-  const verdict      = _verdict(total, stopFlags);
+  const verdict      = _verdict(total, stopFlags, block4.score);
   const expectedTest = _expectedTest(blocks, det, mx);
 
   const sc         = { blocks, total, stopFlags, redFlags, verdict, expectedTest };
