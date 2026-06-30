@@ -240,24 +240,6 @@ body {
   background: #1c1c1c;
   margin: 3px 0;
 }
-.ts-fvg-box {
-  border: 1px solid #222;
-  border-radius: 5px;
-  background: #0c0c0c;
-  overflow: hidden;
-  margin: 4px 0;
-}
-.ts-fvg-header {
-  font-size: 9px;
-  font-weight: 700;
-  color: #2e2e2e;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  padding: 4px 8px;
-  border-bottom: 1px solid #1a1a1a;
-}
-.ts-fvg-divider { height: 1px; background: #1a1a1a; }
 .ts-zone {
   display: flex;
   justify-content: space-between;

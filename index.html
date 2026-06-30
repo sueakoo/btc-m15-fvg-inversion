@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782839650">
+  <link rel="stylesheet" href="css/style.css?v=1782852685">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782839650"></script>
-<script src="js/detection.js?v=1782839650"></script>
-<script src="js/metrics.js?v=1782839650"></script>
-<script src="js/scoring.js?v=1782839650"></script>
+<script src="js/parser.js?v=1782852685"></script>
+<script src="js/detection.js?v=1782852685"></script>
+<script src="js/metrics.js?v=1782852685"></script>
+<script src="js/scoring.js?v=1782852685"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -136,7 +136,7 @@ const TEST_COLORS = {
 };
 
 
-function testIndicatorHtml(et, invClose, pivotVal, fvgLo, fvgHi) {
+function testIndicatorHtml(et, invClose, pivotVal) {
   const lv  = et.level;
   const rng = et.range;
 
@@ -161,12 +161,8 @@ function testIndicatorHtml(et, invClose, pivotVal, fvgLo, fvgHi) {
     ${noTestHtml}
     <div class="ts-sep"></div>
     <div class="ts-marker ts-inv">● Инверсия · ${invClose}</div>
-    <div class="ts-fvg-box">
-      <div class="ts-fvg-header">FVG · ${fvgLo} – ${fvgHi}</div>
-      ${z('Мелкий',  '#2ea043')}
-      <div class="ts-fvg-divider"></div>
-      ${z('Средний', '#d4a017')}
-    </div>
+    ${z('Мелкий',  '#2ea043')}
+    ${z('Средний', '#d4a017')}
     ${z('Глубокий', '#e38a11')}
     <div class="ts-sep"></div>
     <div class="ts-marker ts-piv">● Pivot · ${pivotVal}</div>
@@ -349,7 +345,7 @@ function buildReport(sc, det, mx) {
   const testCard = `
     <div class="rc" style="border-left: 3px solid ${testColor}">
       <div class="section-title">Ожидаемый тест</div>
-      ${testIndicatorHtml(et, det.inversion.close, det.pivot.value, det.fvg.lower_fvg, det.fvg.upper_fvg)}
+      ${testIndicatorHtml(et, det.inversion.close, det.pivot.value)}
       <div class="test-comment">${et.comment}</div>
     </div>`;
 
