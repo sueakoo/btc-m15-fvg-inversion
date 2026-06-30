@@ -135,16 +135,36 @@ function computeMetrics(m15, h1, det) {
   }
   const h1_ip_avg = _h1IpCnt > 0 ? _h1IpSum / _h1IpCnt : null;
 
-  // Коррекция: H1 корректирует M15-среднее.
-  // 1 H1-свеча = ненадёжный снэпшот → вес 20%.
-  // 2+ H1-свечи = надёжное среднее → вес 35%.
-  // Нет H1 = берём M15 без изменений.
-  const _h1w = _h1IpCnt >= 2 ? 0.35 : _h1IpCnt === 1 ? 0.20 : 0;
-  const ip_magnet = m15_ip_avg != null
-    ? (h1_ip_avg != null && _h1w > 0
-        ? m15_ip_avg * (1 - _h1w) + h1_ip_avg * _h1w
-        : m15_ip_avg)
-    : (h1_ip_avg ?? null);
+  // Коррекция H1:
+  // Определяем зону каждого значения относительно ключевых уровней.
+  // Если M15 и H1 в одной зоне → H1 подтверждает, коррекция не нужна.
+  // Если в разных зонах → крупные деньги тянут в другую сторону,
+  //   берём середину: m15 + (h1 - m15) * 0.5.
+  // Нет H1 → только M15.
+  function _ipZoneFor(price) {
+    if (price == null) return null;
+    if (_dir === 'long') {
+      if (price > det.inversion.close) return 'above_inv';
+      if (price >= lower_fvg)          return 'fvg_area';
+      if (price > det.pivot.value)     return 'below_fvg';
+      return 'below_pivot';
+    } else {
+      if (price < det.inversion.close) return 'above_inv';
+      if (price <= upper_fvg)          return 'fvg_area';
+      if (price < det.pivot.value)     return 'below_fvg';
+      return 'below_pivot';
+    }
+  }
+  let ip_magnet = null;
+  if (m15_ip_avg != null && h1_ip_avg != null) {
+    const zM15 = _ipZoneFor(m15_ip_avg);
+    const zH1  = _ipZoneFor(h1_ip_avg);
+    ip_magnet = (zM15 === zH1)
+      ? m15_ip_avg                                            // в одной зоне — без коррекции
+      : m15_ip_avg + (h1_ip_avg - m15_ip_avg) * 0.5;        // в разных — берём середину
+  } else {
+    ip_magnet = m15_ip_avg ?? h1_ip_avg ?? null;
+  }
 
   // ── Позиция implied_price относительно FVG (Block 8, флаги, UI) ─
   const _ip      = invCandle.implied_price ?? null;
