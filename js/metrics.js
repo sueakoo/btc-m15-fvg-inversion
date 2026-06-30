@@ -120,6 +120,32 @@ function computeMetrics(m15, h1, det) {
   const h1_limb       = h1TotalLiq > 0  ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
   const h1_cvd_sign   = h1CvdSum > 0 ? 1 : h1CvdSum < 0 ? -1 : 0;
 
+  // ── Арбитражный магнит: среднее implied_price по M15-окну + H1-коррекция ─
+  let _m15IpSum = 0, _m15IpCnt = 0;
+  for (const c of oiCandles) {
+    const ip = c.implied_price ?? null;
+    if (ip != null) { _m15IpSum += ip; _m15IpCnt++; }
+  }
+  const m15_ip_avg = _m15IpCnt > 0 ? _m15IpSum / _m15IpCnt : null;
+
+  let _h1IpSum = 0, _h1IpCnt = 0;
+  for (const c of h1Window) {
+    const ip = c.implied_price ?? null;
+    if (ip != null) { _h1IpSum += ip; _h1IpCnt++; }
+  }
+  const h1_ip_avg = _h1IpCnt > 0 ? _h1IpSum / _h1IpCnt : null;
+
+  // Коррекция: H1 корректирует M15-среднее.
+  // 1 H1-свеча = ненадёжный снэпшот → вес 20%.
+  // 2+ H1-свечи = надёжное среднее → вес 35%.
+  // Нет H1 = берём M15 без изменений.
+  const _h1w = _h1IpCnt >= 2 ? 0.35 : _h1IpCnt === 1 ? 0.20 : 0;
+  const ip_magnet = m15_ip_avg != null
+    ? (h1_ip_avg != null && _h1w > 0
+        ? m15_ip_avg * (1 - _h1w) + h1_ip_avg * _h1w
+        : m15_ip_avg)
+    : (h1_ip_avg ?? null);
+
   // ── Позиция implied_price относительно FVG (Block 8, флаги, UI) ─
   const _ip      = invCandle.implied_price ?? null;
   const _midFvg  = (lower_fvg + upper_fvg) / 2;
@@ -157,6 +183,11 @@ function computeMetrics(m15, h1, det) {
     post_pivot_volume:   Math.round(post_pivot_volume),
     fvg_volume_share:    _r(fvg_volume_share,   3),
     final_volume_share:  _r(final_volume_share,  3),
+
+    // ── Арбитражный магнит ──────────────────
+    m15_ip_avg:  _r(m15_ip_avg, 0),
+    h1_ip_avg:   _r(h1_ip_avg,  0),
+    ip_magnet:   _r(ip_magnet,  0),
 
     // ── Позиция implied_price ────────────────
     ip_zone,

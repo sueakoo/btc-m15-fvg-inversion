@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782678922">
+  <link rel="stylesheet" href="css/style.css?v=1782820986">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782678922"></script>
-<script src="js/detection.js?v=1782678922"></script>
-<script src="js/metrics.js?v=1782678922"></script>
-<script src="js/scoring.js?v=1782678922"></script>
+<script src="js/parser.js?v=1782820986"></script>
+<script src="js/detection.js?v=1782820986"></script>
+<script src="js/metrics.js?v=1782820986"></script>
+<script src="js/scoring.js?v=1782820986"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -380,8 +380,106 @@ function buildReport(sc, det, mx) {
       ${detailsHtml}
     </div>`;
 
+  // ── Арбитражный магнит ───────────────────────────────────────
+  let magnetCard = '';
+  const _mag = mx.ip_magnet;
+  if (_mag != null) {
+    const _dir = det.direction;
+    const _inv = det.inversion.close;
+    const _piv = det.pivot.value;
+    const _flo = det.fvg.lower_fvg;
+    const _fhi = det.fvg.upper_fvg;
+
+    // Зона магнита
+    let _magColor, _magBorderColor, _magLabel, _magDesc, _magIsStop = false;
+    if (_dir === 'long') {
+      if (_mag > _inv) {
+        _magColor = '#3fb950'; _magLabel = 'За инверсией';
+        _magDesc  = 'Магнит тянет цену выше инверсии — направление подтверждено';
+      } else if (_mag >= _flo) {
+        _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG';
+        _magDesc  = 'Магнит внутри зоны — умеренный откат к уровню ожидаем';
+      } else if (_mag > _piv) {
+        _magColor = '#e05555'; _magLabel = 'Ниже FVG';
+        _magDesc  = 'Магнит ниже FVG — риск глубокого отката к пивоту';
+      } else {
+        _magColor = '#c0392b'; _magLabel = 'За пивотом'; _magIsStop = true;
+        _magDesc  = 'Магнит за пивотом — стоп-сигнал';
+      }
+    } else {
+      if (_mag < _inv) {
+        _magColor = '#3fb950'; _magLabel = 'За инверсией';
+        _magDesc  = 'Магнит тянет цену ниже инверсии — направление подтверждено';
+      } else if (_mag <= _fhi) {
+        _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG';
+        _magDesc  = 'Магнит внутри зоны — умеренный откат к уровню ожидаем';
+      } else if (_mag < _piv) {
+        _magColor = '#e05555'; _magLabel = 'Выше FVG';
+        _magDesc  = 'Магнит выше FVG — риск глубокого отката к пивоту';
+      } else {
+        _magColor = '#c0392b'; _magLabel = 'За пивотом'; _magIsStop = true;
+        _magDesc  = 'Магнит за пивотом — стоп-сигнал';
+      }
+    }
+    _magBorderColor = _magIsStop ? '#c0392b' : _magColor;
+
+    // Позиция на горизонтальной шкале (0%=пивот, 100%=инверсия)
+    // Для SHORT: barMin=inv(низ), barMax=piv(верх), но шкала идёт от inv к piv
+    const _barMin = _dir === 'long' ? _piv : _inv;
+    const _barMax = _dir === 'long' ? _inv : _piv;
+    const _barRng = _barMax - _barMin;
+    const _pct    = p => (_barRng > 0 ? (p - _barMin) / _barRng * 100 : 0);
+
+    const _magPct = Math.min(Math.max(_pct(_mag), -8), 108); // clamp for display
+    const _floPct = _pct(_flo);
+    const _fhiPct = _pct(_fhi);
+    // FVG band: от min(flo,fhi)% до max(flo,fhi)% в координатах шкалы
+    const _fvgL   = Math.min(_floPct, _fhiPct);
+    const _fvgW   = Math.abs(_fhiPct - _floPct);
+
+    // Метка инверсии на шкале (100% или чуть меньше если магнит > 100)
+    const _invPct = 100;
+
+    const _fmt = p => Math.round(p).toLocaleString('ru-RU');
+    const _pctStr = v => v.toFixed(1) + '%';
+
+    const _sourceStr = [
+      mx.m15_ip_avg != null ? `M15: <b>${_fmt(mx.m15_ip_avg)}</b>` : null,
+      mx.h1_ip_avg  != null ? `H1: <b>${_fmt(mx.h1_ip_avg)}</b>`  : null,
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+    magnetCard = `
+    <div class="rc" style="border-left: 3px solid ${_magBorderColor}">
+      <div class="section-title">Арбитражный магнит</div>
+      <div class="magnet-layout">
+        <div class="magnet-info">
+          <div class="magnet-price" style="color:${_magColor}">${_fmt(_mag)}</div>
+          <div class="magnet-zone-badge" style="color:${_magColor}">${_magLabel}</div>
+          <div class="magnet-desc">${_magIsStop ? '🛑 ' : ''}${_magDesc}</div>
+          <div class="magnet-sources">${_sourceStr}</div>
+        </div>
+      </div>
+      <div class="magnet-scale-wrap">
+        <div class="magnet-bar-outer">
+          <div class="magnet-bar-track">
+            <div class="magnet-fvg-band" style="left:${_fvgL}%;width:${_fvgW}%"></div>
+            <div class="magnet-inv-line" style="left:${_invPct}%"></div>
+            <div class="magnet-dot" style="left:${_magPct}%;background:${_magColor};box-shadow:0 0 8px ${_magColor}88"></div>
+          </div>
+        </div>
+        <div class="magnet-price-labels">
+          <span class="magnet-price-lbl lbl-piv"  style="left:0%">PIV ${_fmt(_barMin)}</span>
+          <span class="magnet-price-lbl lbl-fvg"  style="left:${_fvgL}%">FVG↓</span>
+          <span class="magnet-price-lbl lbl-fvg"  style="left:${_fvgL + _fvgW}%">FVG↑</span>
+          <span class="magnet-price-lbl lbl-inv"  style="left:${_invPct}%">INV ${_fmt(_barMax)}</span>
+          <span class="magnet-price-lbl lbl-mag"  style="left:${_magPct}%;color:${_magColor}">${_fmt(_mag)}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
   const saveBtn = `<button class="btn-save" id="btnSave" onclick="openSaveModal()">Сохранить сетап</button>`;
-  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard + saveBtn;
+  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + magnetCard + metricsCard + detailsCard + saveBtn;
 }
 
 // ── Запуск анализа ────────────────────────────────────────────
