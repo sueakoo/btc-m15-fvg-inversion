@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782823156">
+  <link rel="stylesheet" href="css/style.css?v=1782824140">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782823156"></script>
-<script src="js/detection.js?v=1782823156"></script>
-<script src="js/metrics.js?v=1782823156"></script>
-<script src="js/scoring.js?v=1782823156"></script>
+<script src="js/parser.js?v=1782824140"></script>
+<script src="js/detection.js?v=1782824140"></script>
+<script src="js/metrics.js?v=1782824140"></script>
+<script src="js/scoring.js?v=1782824140"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -393,15 +393,15 @@ function buildReport(sc, det, mx) {
     // Зона магнита и цвет
     let _magColor, _magBorderColor, _magLabel, _magDesc, _magIsStop = false;
     if (_dir === 'long') {
-      if (_mag > _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Магнит тянет выше инверсии — направление подтверждено'; }
-      else if (_mag >= _flo) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Магнит внутри FVG — умеренный откат ожидаем'; }
-      else if (_mag > _piv)  { _magColor = '#e05555'; _magLabel = 'Ниже FVG';        _magDesc = 'Магнит ниже FVG — риск глубокого отката к пивоту'; }
-      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Магнит за пивотом — стоп-сигнал'; _magIsStop = true; }
+      if (_mag > _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Цену тянет по направлению движения'; }
+      else if (_mag >= _flo) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Возможен умеренный откат'; }
+      else if (_mag > _piv)  { _magColor = '#e05555'; _magLabel = 'Ниже FVG';        _magDesc = 'Риск глубокого теста'; }
+      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Стоп, игнорировать сетап'; _magIsStop = true; }
     } else {
-      if (_mag < _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Магнит тянет ниже инверсии — направление подтверждено'; }
-      else if (_mag <= _fhi) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Магнит внутри FVG — умеренный откат ожидаем'; }
-      else if (_mag < _piv)  { _magColor = '#e05555'; _magLabel = 'Выше FVG';        _magDesc = 'Магнит выше FVG — риск глубокого отката к пивоту'; }
-      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Магнит за пивотом — стоп-сигнал'; _magIsStop = true; }
+      if (_mag < _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Цену тянет по направлению движения'; }
+      else if (_mag <= _fhi) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Возможен умеренный откат'; }
+      else if (_mag < _piv)  { _magColor = '#e05555'; _magLabel = 'Выше FVG';        _magDesc = 'Риск глубокого теста'; }
+      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Стоп, игнорировать сетап'; _magIsStop = true; }
     }
     _magBorderColor = _magColor;
 
@@ -466,8 +466,9 @@ function buildReport(sc, det, mx) {
       mx.h1_ip_avg  != null ? `H1: <b>${_fmt(mx.h1_ip_avg)}</b>`  : null,
     ].filter(Boolean).join(' &nbsp;·&nbsp; ');
 
+    const _stopStyle = _magIsStop ? 'background:rgba(192,57,43,0.10);border:1px solid rgba(192,57,43,0.35);' : '';
     magnetCard = `
-    <div class="rc" style="border-left: 3px solid ${_magBorderColor}">
+    <div class="rc" style="border-left: 3px solid ${_magBorderColor};${_stopStyle}">
       <div class="section-title">Арбитражный магнит</div>
       <div class="magnet-body">
         <div class="magnet-info">
