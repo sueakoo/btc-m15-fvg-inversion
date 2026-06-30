@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782822094">
+  <link rel="stylesheet" href="css/style.css?v=1782823156">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782822094"></script>
-<script src="js/detection.js?v=1782822094"></script>
-<script src="js/metrics.js?v=1782822094"></script>
-<script src="js/scoring.js?v=1782822094"></script>
+<script src="js/parser.js?v=1782823156"></script>
+<script src="js/detection.js?v=1782823156"></script>
+<script src="js/metrics.js?v=1782823156"></script>
+<script src="js/scoring.js?v=1782823156"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -390,58 +390,76 @@ function buildReport(sc, det, mx) {
     const _flo = det.fvg.lower_fvg;
     const _fhi = det.fvg.upper_fvg;
 
-    // Зона магнита
+    // Зона магнита и цвет
     let _magColor, _magBorderColor, _magLabel, _magDesc, _magIsStop = false;
     if (_dir === 'long') {
-      if (_mag > _inv) {
-        _magColor = '#3fb950'; _magLabel = 'За инверсией';
-        _magDesc  = 'Магнит тянет цену выше инверсии — направление подтверждено';
-      } else if (_mag >= _flo) {
-        _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG';
-        _magDesc  = 'Магнит внутри зоны — умеренный откат к уровню ожидаем';
-      } else if (_mag > _piv) {
-        _magColor = '#e05555'; _magLabel = 'Ниже FVG';
-        _magDesc  = 'Магнит ниже FVG — риск глубокого отката к пивоту';
-      } else {
-        _magColor = '#c0392b'; _magLabel = 'За пивотом'; _magIsStop = true;
-        _magDesc  = 'Магнит за пивотом — стоп-сигнал';
-      }
+      if (_mag > _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Магнит тянет выше инверсии — направление подтверждено'; }
+      else if (_mag >= _flo) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Магнит внутри FVG — умеренный откат ожидаем'; }
+      else if (_mag > _piv)  { _magColor = '#e05555'; _magLabel = 'Ниже FVG';        _magDesc = 'Магнит ниже FVG — риск глубокого отката к пивоту'; }
+      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Магнит за пивотом — стоп-сигнал'; _magIsStop = true; }
     } else {
-      if (_mag < _inv) {
-        _magColor = '#3fb950'; _magLabel = 'За инверсией';
-        _magDesc  = 'Магнит тянет цену ниже инверсии — направление подтверждено';
-      } else if (_mag <= _fhi) {
-        _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG';
-        _magDesc  = 'Магнит внутри зоны — умеренный откат к уровню ожидаем';
-      } else if (_mag < _piv) {
-        _magColor = '#e05555'; _magLabel = 'Выше FVG';
-        _magDesc  = 'Магнит выше FVG — риск глубокого отката к пивоту';
-      } else {
-        _magColor = '#c0392b'; _magLabel = 'За пивотом'; _magIsStop = true;
-        _magDesc  = 'Магнит за пивотом — стоп-сигнал';
-      }
+      if (_mag < _inv)       { _magColor = '#3fb950'; _magLabel = 'За инверсией';    _magDesc = 'Магнит тянет ниже инверсии — направление подтверждено'; }
+      else if (_mag <= _fhi) { _magColor = '#f0a030'; _magLabel = 'Внутри зоны FVG'; _magDesc = 'Магнит внутри FVG — умеренный откат ожидаем'; }
+      else if (_mag < _piv)  { _magColor = '#e05555'; _magLabel = 'Выше FVG';        _magDesc = 'Магнит выше FVG — риск глубокого отката к пивоту'; }
+      else                   { _magColor = '#c0392b'; _magLabel = 'За пивотом';      _magDesc = 'Магнит за пивотом — стоп-сигнал'; _magIsStop = true; }
     }
-    _magBorderColor = _magIsStop ? '#c0392b' : _magColor;
-
-    // Позиция на горизонтальной шкале (0%=пивот, 100%=инверсия)
-    // Для SHORT: barMin=inv(низ), barMax=piv(верх), но шкала идёт от inv к piv
-    const _barMin = _dir === 'long' ? _piv : _inv;
-    const _barMax = _dir === 'long' ? _inv : _piv;
-    const _barRng = _barMax - _barMin;
-    const _pct    = p => (_barRng > 0 ? (p - _barMin) / _barRng * 100 : 0);
-
-    const _magPct = Math.min(Math.max(_pct(_mag), -8), 108); // clamp for display
-    const _floPct = _pct(_flo);
-    const _fhiPct = _pct(_fhi);
-    // FVG band: от min(flo,fhi)% до max(flo,fhi)% в координатах шкалы
-    const _fvgL   = Math.min(_floPct, _fhiPct);
-    const _fvgW   = Math.abs(_fhiPct - _floPct);
-
-    // Метка инверсии на шкале (100% или чуть меньше если магнит > 100)
-    const _invPct = 100;
+    _magBorderColor = _magColor;
 
     const _fmt = p => Math.round(p).toLocaleString('ru-RU');
-    const _pctStr = v => v.toFixed(1) + '%';
+
+    // Вертикальная шкала
+    // Для LONG и SHORT: пивот всегда внизу (красный), инверсия всегда вверху (зелёный).
+    // Для SHORT ось инвертирована по цене: низкая цена (инверсия) = верх бара.
+    const _TH = 100;           // высота track px
+    const _EH = 16;            // высота каждого extension px
+    const _TX = 2;             // track left offset px
+    const _TW = 8;             // track width px
+    const _LX = _TX + _TW + 6; // label left = 16px
+    const _OH = _TH + _EH * 2; // outer height = 132px
+    const _OW = _LX + 86;      // outer width = 102px
+    const _RNG = Math.abs(_inv - _piv);
+
+    // barPx: пиксели от низа track (0=пивот, TH=инверсия)
+    const _bPx = price => _RNG === 0 ? 0 :
+      (_dir === 'long' ? (price - _piv) / (_inv - _piv) : (_piv - price) / (_piv - _inv)) * _TH;
+
+    const _floBpx = _bPx(_flo);
+    const _fhiBpx = _bPx(_fhi);
+    const _fvgBot = Math.min(_floBpx, _fhiBpx);
+    const _fvgHt  = Math.max(2, Math.abs(_fhiBpx - _floBpx));
+    const _magBpx = _bPx(_mag);
+    const _magC   = Math.max(-_EH + 2, Math.min(_TH + _EH - 2, _magBpx));
+
+    // Лейблы с разрешением коллизий (минимальный зазор 13px)
+    const _lbls = [
+      { text: 'INV ' + _fmt(_inv), color: '#3fb950', bold: false, px: _EH + _TH     },
+      { text: _fmt(_fhi),          color: '#6a70cc', bold: false, px: _EH + _fhiBpx },
+      { text: _fmt(_flo),          color: '#6a70cc', bold: false, px: _EH + _floBpx },
+      { text: 'PIV ' + _fmt(_piv), color: '#e05555', bold: false, px: _EH + 0       },
+      { text: _fmt(_mag),          color: _magColor, bold: true,  px: _EH + _magC   },
+    ].filter(l => isFinite(l.px));
+    _lbls.sort((a, b) => a.px - b.px);
+    for (let i = 1; i < _lbls.length; i++) {
+      if (_lbls[i].px - _lbls[i-1].px < 13) _lbls[i].px = _lbls[i-1].px + 13;
+    }
+    const _labHtml = _lbls.map(l =>
+      `<div style="position:absolute;bottom:${l.px}px;left:${_LX}px;transform:translateY(50%);` +
+      `font-size:${l.bold ? 11 : 10}px;font-weight:${l.bold ? 700 : 400};` +
+      `color:${l.color};white-space:nowrap;font-variant-numeric:tabular-nums">${l.text}</div>`
+    ).join('');
+
+    const _barHtml =
+      `<div style="position:relative;height:${_OH}px;width:${_OW}px;flex-shrink:0">` +
+      `<div style="position:absolute;bottom:${_TH+_EH}px;left:${_TX}px;width:${_TW}px;height:${_EH}px;background:linear-gradient(to top,rgba(63,185,80,0.30),transparent);border-radius:3px 3px 0 0"></div>` +
+      `<div style="position:absolute;bottom:${_EH}px;left:${_TX}px;width:${_TW}px;height:${_TH}px;background:#1e1e1e;border-radius:3px;overflow:visible;z-index:1">` +
+        `<div style="position:absolute;left:0;right:0;bottom:${_fvgBot}px;height:${_fvgHt}px;background:rgba(100,120,220,0.30);border-radius:2px"></div>` +
+        `<div style="position:absolute;left:50%;bottom:${_TH}px;transform:translate(-50%,50%);width:10px;height:10px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb95088;z-index:2"></div>` +
+        `<div style="position:absolute;left:50%;bottom:0px;transform:translate(-50%,50%);width:10px;height:10px;border-radius:50%;background:#e05555;box-shadow:0 0 6px #e0555588;z-index:2"></div>` +
+        `<div style="position:absolute;left:50%;bottom:${_magC}px;transform:translate(-50%,50%);width:13px;height:13px;border-radius:50%;background:${_magColor};border:2px solid #0f0f0f;box-shadow:0 0 9px ${_magColor}99;z-index:3"></div>` +
+      `</div>` +
+      `<div style="position:absolute;bottom:0;left:${_TX}px;width:${_TW}px;height:${_EH}px;background:linear-gradient(to bottom,rgba(192,57,43,0.30),transparent);border-radius:0 0 3px 3px"></div>` +
+      _labHtml +
+      `</div>`;
 
     const _sourceStr = [
       mx.m15_ip_avg != null ? `M15: <b>${_fmt(mx.m15_ip_avg)}</b>` : null,
@@ -451,29 +469,14 @@ function buildReport(sc, det, mx) {
     magnetCard = `
     <div class="rc" style="border-left: 3px solid ${_magBorderColor}">
       <div class="section-title">Арбитражный магнит</div>
-      <div class="magnet-layout">
+      <div class="magnet-body">
         <div class="magnet-info">
           <div class="magnet-price" style="color:${_magColor}">${_fmt(_mag)}</div>
           <div class="magnet-zone-badge" style="color:${_magColor}">${_magLabel}</div>
-          <div class="magnet-desc">${_magIsStop ? '🛑 ' : ''}${_magDesc}</div>
-          <div class="magnet-sources">${_sourceStr}</div>
+          <div class="magnet-desc">${_magDesc}</div>
+          ${_sourceStr ? `<div class="magnet-sources">${_sourceStr}</div>` : ''}
         </div>
-      </div>
-      <div class="magnet-scale-wrap">
-        <div class="magnet-bar-outer">
-          <div class="magnet-bar-track">
-            <div class="magnet-fvg-band" style="left:${_fvgL}%;width:${_fvgW}%"></div>
-            <div class="magnet-inv-line" style="left:${_invPct}%"></div>
-            <div class="magnet-dot" style="left:${_magPct}%;background:${_magColor};box-shadow:0 0 8px ${_magColor}88"></div>
-          </div>
-        </div>
-        <div class="magnet-price-labels">
-          <span class="magnet-price-lbl lbl-piv"  style="left:0%">PIV ${_fmt(_barMin)}</span>
-          <span class="magnet-price-lbl lbl-fvg"  style="left:${_fvgL}%">FVG↓</span>
-          <span class="magnet-price-lbl lbl-fvg"  style="left:${_fvgL + _fvgW}%">FVG↑</span>
-          <span class="magnet-price-lbl lbl-inv"  style="left:${_invPct}%">INV ${_fmt(_barMax)}</span>
-          <span class="magnet-price-lbl lbl-mag"  style="left:${_magPct}%;color:${_magColor}">${_fmt(_mag)}</span>
-        </div>
+        ${_barHtml}
       </div>
     </div>`;
   }
