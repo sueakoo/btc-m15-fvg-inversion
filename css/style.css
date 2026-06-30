@@ -217,9 +217,80 @@ body {
 .flag-red  { background: #1e1500; border: 1px solid #4a3000; color: #d4a017; }
 
 /* ── Expected test ── */
-.test-level   { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-.test-range   { font-size: 22px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
-.test-comment { font-size: 13px; color: #aaa; }
+.test-comment { font-size: 13px; color: #aaa; margin-top: 8px; }
+
+/* ── Test Depth Vertical Indicator ── */
+.test-vi {
+  display: flex;
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+.test-vi-track {
+  width: 10px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.test-vi-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.test-vi-line {
+  width: 2px;
+  flex: 1;
+  min-height: 8px;
+  border-radius: 1px;
+}
+.test-vi-zones {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.test-vi-anchor {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.test-vi-zone {
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.test-vi-zone-range {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.test-vi-zone.inactive {
+  background: #111;
+  color: #2a2a2a;
+  border: 1px solid #1a1a1a;
+}
+.test-vi-no-test {
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
+  background: #111;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-style: italic;
+}
 
 /* ── Metrics grid ── */
 .metrics-grid {

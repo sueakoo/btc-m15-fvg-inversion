@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782838380">
+  <link rel="stylesheet" href="css/style.css?v=1782838954">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782838380"></script>
-<script src="js/detection.js?v=1782838380"></script>
-<script src="js/metrics.js?v=1782838380"></script>
-<script src="js/scoring.js?v=1782838380"></script>
+<script src="js/parser.js?v=1782838954"></script>
+<script src="js/detection.js?v=1782838954"></script>
+<script src="js/metrics.js?v=1782838954"></script>
+<script src="js/scoring.js?v=1782838954"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -132,7 +132,48 @@ const TEST_COLORS = {
   'Глубокий':     '#e38a11',
   'К Pivot':      '#c0392b',
   'Риск провала': '#c0392b',
+  'Без теста':    '#555',
 };
+
+const _TEST_ZONES = [
+  { id: 'Мелкий',       color: '#2ea043' },
+  { id: 'Средний',      color: '#d4a017' },
+  { id: 'Глубокий',     color: '#e38a11' },
+  { id: 'Риск провала', color: '#c0392b' },
+];
+
+function testIndicatorHtml(et, invClose, pivotVal) {
+  const activeColor = TEST_COLORS[et.level] || '#555';
+  const isNoTest    = et.level === 'Без теста';
+
+  const zonesHtml = _TEST_ZONES.map(z => {
+    const active = z.id === et.level;
+    if (active) {
+      return `<div class="test-vi-zone active" style="background:${z.color}22;border:1px solid ${z.color};color:${z.color}">
+        <span>${z.id}</span>
+        <span class="test-vi-zone-range">${et.range}</span>
+      </div>`;
+    }
+    return `<div class="test-vi-zone inactive">${z.id}</div>`;
+  }).join('');
+
+  const lineColor = isNoTest ? '#222' : activeColor + '55';
+
+  return `<div class="test-vi">
+    <div class="test-vi-track">
+      <div class="test-vi-dot" style="background:#2ea043;box-shadow:0 0 4px #2ea04377"></div>
+      <div class="test-vi-line" style="background:${lineColor}"></div>
+      <div class="test-vi-dot" style="background:#c0392b;box-shadow:0 0 4px #c0392b77"></div>
+    </div>
+    <div class="test-vi-zones">
+      <div class="test-vi-anchor" style="color:#3fb950">● Инверсия · ${invClose}</div>
+      ${isNoTest
+        ? `<div class="test-vi-no-test">Тест не ожидается</div>`
+        : zonesHtml}
+      <div class="test-vi-anchor" style="color:#c0392b">● Pivot · ${pivotVal}</div>
+    </div>
+  </div>`;
+}
 
 function chipColor(label, mx, det) {
   const g = mx.gross_oi ?? 0;
@@ -309,8 +350,7 @@ function buildReport(sc, det, mx) {
   const testCard = `
     <div class="rc" style="border-left: 3px solid ${testColor}">
       <div class="section-title">Ожидаемый тест</div>
-      <div class="test-level" style="color:${testColor}">${et.level}</div>
-      <div class="test-range" style="color:${testColor}">${et.range}</div>
+      ${testIndicatorHtml(et, det.inversion.close, det.pivot.value)}
       <div class="test-comment">${et.comment}</div>
     </div>`;
 
