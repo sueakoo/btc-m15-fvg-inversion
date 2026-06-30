@@ -386,35 +386,4 @@ body {
 .metric-chip-sub  { font-size: 11px; color: #999; margin-top: 1px; line-height: 1.3; }
 .metric-chip-hint { font-size: 11px; color: #999; margin-top: 2px; font-style: italic; }
 
-/* ── Арбитражный магнит ── */
-.magnet-body {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-.magnet-info { flex: 1; min-width: 0; }
-.magnet-price {
-  font-size: 24px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -1px;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-.magnet-zone-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  border: 1px solid currentColor;
-  margin-bottom: 8px;
-}
-.magnet-desc {
-  font-size: 13px;
-  color: #aaa;
-  line-height: 1.5;
-  margin-bottom: 5px;
-}
-.magnet-sources { font-size: 11px; color: #444; font-variant-numeric: tabular-nums; }
+
