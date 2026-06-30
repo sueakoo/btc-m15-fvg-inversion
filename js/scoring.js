@@ -678,6 +678,13 @@ function _stopFlags(b, mx, det) {
     flags.push('Тройная слабость при высоком балле — сетап заблокирован');
   }
 
+  // F — FVG пробита насквозь при слабом балле
+  if (b.block3.scenario === 'fvg_fvg'
+      && (mx?.exit_in_fvg ?? 0) > 0.5
+      && b.total < 65) {
+    flags.push('FVG пробита насквозь при создании: OI вышел через зону — при тесте защитников нет');
+  }
+
   return flags;
 }
 
@@ -738,77 +745,149 @@ function _redFlags(b, mx, det) {
       && Math.abs(mx?.h1_limb_pct ?? 0) > 50) {
     flags.push('Тройная слабость: нет захвата инверсии, H1 CVD против направления, перевес ликвидаций против — максимальный риск провала при тесте');
   }
+  // C9 — FVG пробита насквозь при высоком балле
+  if (b.block3.scenario === 'fvg_fvg'
+      && (mx?.exit_in_fvg ?? 0) > 0.5
+      && b.total >= 65) {
+    flags.push('⚠ FVG пробита насквозь при создании: OI вышел через зону — при тесте защитников нет. Риск провала уровня повышен');
+  }
+  // C10 — OI уходит с рынка (пустой ход)
+  if ((mx?.net_oi ?? 0) < -0.3 && (mx?.retention_ratio ?? 0) < -0.4) {
+    flags.push('OI уходит с рынка, ресурс для защиты зоны отсутствует — движение без структурной основы');
+  }
+  // C11 — слабое тело инверсионной свечи
+  if ((mx?.inv?.body_pct ?? 100) < 40) {
+    flags.push('Тело инверсионной свечи менее 40% — слабый захват момента, риск пробоя зоны повышен');
+  }
   return flags;
 }
 
-// ── Ожидаемый тест ───────────────────────────────────────────
+// ── Ожидаемый тест (логика на основе размещения OI) ─────────
+function _testRange(level, dir, upper_fvg, lower_fvg, midFVG, pivotVal, fvgSize) {
+  if (dir === 'long') {
+    if (level === 'Мелкий')       return [Math.round(midFVG),                       Math.round(upper_fvg)];
+    if (level === 'Средний')      return [Math.round(lower_fvg),                    Math.round(midFVG)];
+    if (level === 'Глубокий')     return [Math.round(lower_fvg - fvgSize * 0.5),    Math.round(lower_fvg)];
+    if (level === 'Риск провала') return [Math.round(pivotVal  - fvgSize * 0.5),    Math.round(pivotVal)];
+  } else {
+    if (level === 'Мелкий')       return [Math.round(lower_fvg),                    Math.round(midFVG)];
+    if (level === 'Средний')      return [Math.round(midFVG),                       Math.round(upper_fvg)];
+    if (level === 'Глубокий')     return [Math.round(upper_fvg),                    Math.round(upper_fvg + fvgSize * 0.5)];
+    if (level === 'Риск провала') return [Math.round(pivotVal),                     Math.round(pivotVal + fvgSize * 0.5)];
+  }
+  return [null, null];
+}
+
 function _expectedTest(b, det, mx) {
   const { upper_fvg, lower_fvg } = det.fvg;
-  const pivotVal = det.pivot.value;
-  const fvgSize  = upper_fvg - lower_fvg;
-  const midFVG   = (upper_fvg + lower_fvg) / 2;
-  const ipZone   = mx?.ip_zone ?? null;
+  const pivotVal  = det.pivot.value;
+  const invClose  = det.inversion.close;
+  const direction = det.direction;
+  const fvgSize   = upper_fvg - lower_fvg;
+  const midFVG    = (upper_fvg + lower_fvg) / 2;
 
-  const geo   = b.block6.score;
-  const ret   = b.block3.score;
-  const h1    = b.block9.score;
-  const total = b.total;
+  const net    = mx?.net_oi          ?? 0;
+  const ret    = mx?.retention_ratio ?? null;
+  const sfvg   = mx?.share_fvg       ?? 0;
+  const sblw   = mx?.share_below     ?? 0;
+  const sinv   = mx?.share_inv       ?? 0;
+  const b3     = b.block3.scenario   || '';
+  const b4scen = b.block4.scenario   || 'no_position';
+  const ip     = mx?.ip_magnet       ?? null;
 
-  let level, lo, hi, comment;
+  const _range = (lvl) => {
+    const [lo, hi] = _testRange(lvl, direction, upper_fvg, lower_fvg, midFVG, pivotVal, fvgSize);
+    return lo != null ? `${lo} – ${hi}` : '—';
+  };
 
-  // ip_zone overrides — приоритет над score-логикой
-  if (ipZone === 'critical') {
-    level   = 'Риск провала';
-    lo      = Math.round(pivotVal - fvgSize);
-    hi      = Math.round(pivotVal);
-    comment = 'implied_price ниже Pivot — провал зоны вероятен';
-  } else if (ipZone === 'outside') {
-    level   = 'Глубокий';
-    lo      = Math.round(lower_fvg - fvgSize * 0.5);
-    hi      = Math.round(lower_fvg);
-    comment = 'implied_price ниже FVG — тест к нижней границе и ниже';
-  } else if (ipZone === 'weak') {
-    level   = 'Глубокий';
-    lo      = Math.round(lower_fvg);
-    hi      = Math.round(midFVG);
-    comment = 'implied_price в нижней части FVG — тест ожидается вглубь зоны';
-  } else if (ipZone === 'strong' && b.block8.score === 0) {
-    level   = 'Глубокий';
-    lo      = Math.round(lower_fvg);
-    hi      = Math.round(midFVG);
-    comment = 'Высокий skew — тест нижней части зоны вероятен несмотря на позицию OI';
-  } else if (total >= 76 && geo >= 6 && h1 >= 13
-      && b.block8.score > 2
-      && (mx?.share_fvg ?? 0) > 0
-      && (mx?.retention_ratio ?? 0) >= 0.40
-      && b.block4.score > 6) {
-    level   = 'Мелкий';
-    lo      = Math.round(midFVG);
-    hi      = Math.round(upper_fvg);
-    comment = 'Ожидается поверхностный тест верхней части FVG';
-  } else if (total >= 60 || (geo >= 5 && ret >= 9)) {
-    level   = 'Средний';
-    lo      = Math.round(lower_fvg);
-    hi      = Math.round(midFVG);
-    comment = 'Ожидается тест середины FVG';
-  } else if (total >= 45) {
-    level   = 'Глубокий';
-    lo      = Math.round(lower_fvg - fvgSize * 0.5);
-    hi      = Math.round(lower_fvg);
-    comment = 'Ожидается тест нижней границы и ниже FVG';
-  } else if (total >= 30) {
-    level   = 'К Pivot';
-    lo      = Math.round(pivotVal);
-    hi      = Math.round(lower_fvg);
-    comment = 'Риск глубокого ретеста к уровню Pivot';
-  } else {
-    level   = 'Риск провала';
-    lo      = Math.round(pivotVal - fvgSize);
-    hi      = Math.round(pivotVal);
-    comment = 'Ресурса нет — ожидается провал ниже Pivot';
+  // ── Шаг 0: ПРОВАЛ ────────────────────────────────────────────
+  // OI накапливался и разгрузился внутри FVG (fvg_fvg)
+  // + суммарный OI сильно отрицательный
+  if (b3 === 'fvg_fvg' && net < -0.40 && ret !== null && ret < -0.40) {
+    return {
+      level:   'Риск провала',
+      range:   _range('Риск провала'),
+      comment: 'OI накапливался и разгрузился внутри FVG — зона без защиты, вероятен пробой Pivot',
+    };
   }
 
-  return { level, range: `${lo} – ${hi}`, comment };
+  // ── Шаг 1: БЕЗ ТЕСТА ─────────────────────────────────────────
+  // Суммарный OI сильно отрицательный — движение прошло без позиций
+  if (net < -0.30 && ret !== null && ret < -0.40) {
+    return {
+      level:   'Без теста',
+      range:   '—',
+      comment: 'Движение прошло без набора OI — тест зоны маловероятен',
+    };
+  }
+
+  // ── Шаг 2А: OI сконцентрирован на свече инверсии ─────────────
+  if (sinv > 0.40) {
+    const active = b4scen === 'initiative' || b4scen === 'absorption';
+    const level  = active ? 'Средний' : 'Мелкий';
+    return {
+      level,
+      range:   _range(level),
+      comment: active
+        ? 'OI набран на инверсионной свече, инициатива — тест вглубь FVG'
+        : 'OI набран на инверсионной свече, без позиции — поверхностный тест',
+    };
+  }
+
+  // ── Шаг 2Б: OI в зоне FVG (не fvg_fvg) ──────────────────────
+  if (sfvg > 0.35 && b3 !== 'fvg_fvg') {
+    const active = b4scen === 'initiative' || b4scen === 'absorption';
+    const level  = active ? 'Средний' : 'Мелкий';
+    return {
+      level,
+      range:   _range(level),
+      comment: active
+        ? 'OI сконцентрирован в зоне FVG, инициатива — тест к середине зоны'
+        : 'OI сконцентрирован в зоне FVG, без позиции — поверхностный тест',
+    };
+  }
+
+  // ── Шаг 2В: OI ниже зоны FVG (для лонга) / выше (для шорта) ─
+  if (sblw > 0.50) {
+    const active = b4scen === 'initiative' || b4scen === 'absorption';
+    const bigNet = net > 0.60;
+    const level  = (active || bigNet) ? 'Глубокий' : 'Средний';
+    return {
+      level,
+      range:   _range(level),
+      comment: active
+        ? 'OI ниже FVG, инициатива — цена тянется к основным позициям, глубже зоны'
+        : bigNet
+          ? 'OI ниже FVG, большой суммарный OI — магнит позиций тянет глубже зоны'
+          : 'OI ниже FVG — тест к нижней границе FVG',
+    };
+  }
+
+  // ── Шаг 2Г: Размытый — implied_price как магнит ───────────────
+  if (ip != null) {
+    const rng = Math.abs(invClose - pivotVal);
+    let pct = 0;
+    if (rng > 0) {
+      pct = direction === 'long'
+        ? (invClose - ip) / rng
+        : (ip - invClose) / rng;
+      pct = Math.max(0, pct);
+    }
+    const level = pct <= 1 / 3 ? 'Мелкий' : pct <= 2 / 3 ? 'Средний' : 'Глубокий';
+    const comments = {
+      'Мелкий':  'implied_price в верхней части диапазона — поверхностный тест верхней части FVG',
+      'Средний': 'implied_price в середине диапазона — тест к середине FVG',
+      'Глубокий':'implied_price у нижней границы диапазона — тест ниже FVG',
+    };
+    return { level, range: _range(level), comment: comments[level] };
+  }
+
+  // Fallback — нет данных implied_price
+  return {
+    level:   'Средний',
+    range:   _range('Средний'),
+    comment: 'Данных implied_price нет — тест середины FVG по умолчанию',
+  };
 }
 
 // ── Вердикт ──────────────────────────────────────────────────
@@ -871,7 +950,7 @@ const _MECH_INTRO = {
 const _PROB = {
   'Сильный сетап':        'Вероятность отработки высокая.',
   'Рабочий сетап':        'Вероятность отработки выше среднего.',
-  'Стандартная инверсия': 'Вероятность отработки умеренная — по бектесту 42%. Вход только при чётком подтверждении.',
+  'Стандартная инверсия': 'Вероятность отработки умеренная — по бектесту 36%. Вход только при чётком подтверждении.',
   'Ослабленная инверсия': 'Вероятность отработки низкая.',
 };
 
@@ -935,39 +1014,27 @@ function _buildConclusion(b, det, mx, sc) {
     : 'Риски по приборам: ' + risks.join('; ') + '.';
 
   const et = sc.expectedTest;
-  const testStr = `При касании ${et.range} — ${et.comment.charAt(0).toLowerCase() + et.comment.slice(1)}.`;
+  const testStr = et.level === 'Без теста'
+    ? 'Тест зоны маловероятен — движение прошло без набора OI, защищать зону некому.'
+    : `При касании ${et.range} — ${et.comment.charAt(0).toLowerCase() + et.comment.slice(1)}.`;
 
   return `${intro} ${confirmStr} ${h1Str} ${prob} ${riskStr} ${testStr}`.trim();
 }
 
 // ── Вероятность "без теста" ───────────────────
 function _noTestProbability(b, mx) {
-  const scenario  = b.block4.scenario  || 'no_position';
-  const shareInv  = mx?.share_inv        ?? 0;
-  const oiWindow  = mx?.oi_window_count  ?? 99;
-  const h1Doi     = mx?.h1_doi_pct       ?? 0;
-  const netOi     = mx?.net_oi           ?? 0;
-  const retention = mx?.retention_ratio  ?? 0;
+  const net = mx?.net_oi          ?? 0;
+  const ret = mx?.retention_ratio ?? null;
+  const b3  = b.block3.scenario   || '';
 
-  // Тип 1 — сильный импульс, цена ушла без теста
-  if (['initiative', 'absorption'].includes(scenario)
-      && shareInv >= 0.25
-      && oiWindow <= 6
-      && h1Doi    >= 0.30) {
+  // ПРОВАЛ — зона сломана, обычного теста не будет
+  if (b3 === 'fvg_fvg' && net < -0.40 && ret !== null && ret < -0.40) {
     return 'высокая';
   }
 
-  // Тип 2 — пустой ход, нет основания для теста
-  if (['no_position', 'empty'].includes(scenario)
-      && netOi < 0
-      && (retention < 0 || b.block3.score <= 3)
-      && b.block9.score <= 5) {
+  // Пустой ход — движение без позиций, некому защищать зону
+  if (net < -0.30 && ret !== null && ret < -0.40) {
     return 'высокая';
-  }
-
-  // Средняя — импульс умеренный, тест возможен позже
-  if (shareInv >= 0.15 && oiWindow <= 8) {
-    return 'средняя';
   }
 
   return null;
