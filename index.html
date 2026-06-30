@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782838954">
+  <link rel="stylesheet" href="css/style.css?v=1782839650">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782838954"></script>
-<script src="js/detection.js?v=1782838954"></script>
-<script src="js/metrics.js?v=1782838954"></script>
-<script src="js/scoring.js?v=1782838954"></script>
+<script src="js/parser.js?v=1782839650"></script>
+<script src="js/detection.js?v=1782839650"></script>
+<script src="js/metrics.js?v=1782839650"></script>
+<script src="js/scoring.js?v=1782839650"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -135,43 +135,42 @@ const TEST_COLORS = {
   'Без теста':    '#555',
 };
 
-const _TEST_ZONES = [
-  { id: 'Мелкий',       color: '#2ea043' },
-  { id: 'Средний',      color: '#d4a017' },
-  { id: 'Глубокий',     color: '#e38a11' },
-  { id: 'Риск провала', color: '#c0392b' },
-];
 
-function testIndicatorHtml(et, invClose, pivotVal) {
-  const activeColor = TEST_COLORS[et.level] || '#555';
-  const isNoTest    = et.level === 'Без теста';
+function testIndicatorHtml(et, invClose, pivotVal, fvgLo, fvgHi) {
+  const lv  = et.level;
+  const rng = et.range;
 
-  const zonesHtml = _TEST_ZONES.map(z => {
-    const active = z.id === et.level;
-    if (active) {
-      return `<div class="test-vi-zone active" style="background:${z.color}22;border:1px solid ${z.color};color:${z.color}">
-        <span>${z.id}</span>
-        <span class="test-vi-zone-range">${et.range}</span>
+  const z = (id, color) => {
+    if (id === lv) {
+      return `<div class="ts-zone" style="background:${color}18;color:${color}">
+        <span>${id}</span><span class="ts-zone-range">${rng}</span>
       </div>`;
     }
-    return `<div class="test-vi-zone inactive">${z.id}</div>`;
-  }).join('');
+    return `<div class="ts-zone inactive">${id}</div>`;
+  };
 
-  const lineColor = isNoTest ? '#222' : activeColor + '55';
+  const noTestHtml = lv === 'Без теста'
+    ? `<div class="ts-zone" style="background:#3fb95018;color:#3fb950"><span>↑ Без теста</span><span class="ts-zone-range">тест не ожидается</span></div>`
+    : `<div class="ts-zone inactive" style="font-size:10px">↑ Без теста</div>`;
 
-  return `<div class="test-vi">
-    <div class="test-vi-track">
-      <div class="test-vi-dot" style="background:#2ea043;box-shadow:0 0 4px #2ea04377"></div>
-      <div class="test-vi-line" style="background:${lineColor}"></div>
-      <div class="test-vi-dot" style="background:#c0392b;box-shadow:0 0 4px #c0392b77"></div>
+  const provalHtml = lv === 'Риск провала'
+    ? `<div class="ts-zone" style="background:#c0392b18;color:#c0392b"><span>↓ Риск провала</span><span class="ts-zone-range">${rng}</span></div>`
+    : `<div class="ts-zone inactive" style="font-size:10px">↓ Риск провала</div>`;
+
+  return `<div class="test-scale">
+    ${noTestHtml}
+    <div class="ts-sep"></div>
+    <div class="ts-marker ts-inv">● Инверсия · ${invClose}</div>
+    <div class="ts-fvg-box">
+      <div class="ts-fvg-header">FVG · ${fvgLo} – ${fvgHi}</div>
+      ${z('Мелкий',  '#2ea043')}
+      <div class="ts-fvg-divider"></div>
+      ${z('Средний', '#d4a017')}
     </div>
-    <div class="test-vi-zones">
-      <div class="test-vi-anchor" style="color:#3fb950">● Инверсия · ${invClose}</div>
-      ${isNoTest
-        ? `<div class="test-vi-no-test">Тест не ожидается</div>`
-        : zonesHtml}
-      <div class="test-vi-anchor" style="color:#c0392b">● Pivot · ${pivotVal}</div>
-    </div>
+    ${z('Глубокий', '#e38a11')}
+    <div class="ts-sep"></div>
+    <div class="ts-marker ts-piv">● Pivot · ${pivotVal}</div>
+    ${provalHtml}
   </div>`;
 }
 
@@ -350,7 +349,7 @@ function buildReport(sc, det, mx) {
   const testCard = `
     <div class="rc" style="border-left: 3px solid ${testColor}">
       <div class="section-title">Ожидаемый тест</div>
-      ${testIndicatorHtml(et, det.inversion.close, det.pivot.value)}
+      ${testIndicatorHtml(et, det.inversion.close, det.pivot.value, det.fvg.lower_fvg, det.fvg.upper_fvg)}
       <div class="test-comment">${et.comment}</div>
     </div>`;
 

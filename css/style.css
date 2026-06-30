@@ -219,77 +219,61 @@ body {
 /* ── Expected test ── */
 .test-comment { font-size: 13px; color: #aaa; margin-top: 8px; }
 
-/* ── Test Depth Vertical Indicator ── */
-.test-vi {
-  display: flex;
-  gap: 10px;
-  margin: 6px 0 2px;
-}
-.test-vi-track {
-  width: 10px;
-  flex-shrink: 0;
+/* ── Test Scale Indicator ── */
+.test-scale {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 2px;
+  margin: 10px 0 4px;
 }
-.test-vi-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.test-vi-line {
-  width: 2px;
-  flex: 1;
-  min-height: 8px;
-  border-radius: 1px;
-}
-.test-vi-zones {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.test-vi-anchor {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.test-vi-zone {
-  border-radius: 4px;
-  padding: 5px 8px;
+.ts-marker {
   font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.1px;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 0;
+}
+.ts-inv { color: #3fb950; }
+.ts-piv { color: #c0392b; }
+.ts-sep {
+  height: 1px;
+  background: #1c1c1c;
+  margin: 3px 0;
+}
+.ts-fvg-box {
+  border: 1px solid #222;
+  border-radius: 5px;
+  background: #0c0c0c;
+  overflow: hidden;
+  margin: 4px 0;
+}
+.ts-fvg-header {
+  font-size: 9px;
+  font-weight: 700;
+  color: #2e2e2e;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.ts-fvg-divider { height: 1px; background: #1a1a1a; }
+.ts-zone {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 1px 0;
 }
-.test-vi-zone-range {
+.ts-zone.inactive { color: #222; }
+.ts-zone-range {
   font-size: 10px;
-  font-weight: 600;
   opacity: 0.85;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-.test-vi-zone.inactive {
-  background: #111;
-  color: #2a2a2a;
-  border: 1px solid #1a1a1a;
-}
-.test-vi-no-test {
-  font-size: 11px;
-  font-weight: 600;
-  color: #444;
-  background: #111;
-  border: 1px solid #1a1a1a;
-  border-radius: 4px;
-  padding: 5px 8px;
-  font-style: italic;
 }
 
 /* ── Metrics grid ── */
