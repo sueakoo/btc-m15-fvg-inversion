@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782918693">
+  <link rel="stylesheet" href="css/style.css?v=1782919095">
 </head>
 <body>
 <div class="app">
@@ -210,11 +210,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782918693"></script>
-<script src="js/detection.js?v=1782918693"></script>
-<script src="js/metrics.js?v=1782918693"></script>
-<script src="js/scoring.js?v=1782918693"></script>
-<script src="js/scoring_mvp.js?v=1782918693"></script>
+<script src="js/parser.js?v=1782919095"></script>
+<script src="js/detection.js?v=1782919095"></script>
+<script src="js/metrics.js?v=1782919095"></script>
+<script src="js/scoring.js?v=1782919095"></script>
+<script src="js/scoring_mvp.js?v=1782919095"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -817,32 +817,10 @@ const DIST_LABELS     = { '1_4':'1–4 свечи', '5_25':'5–25 свечей'
 function initExtSection() {
   if (!_lastDet || !_lastMx) return;
 
-  // Distance
-  const d = _lastDet.inversion.idx - _lastDet.pivot.idx;
-  const distCat = d <= 4 ? '1–4 свечи' : d <= 25 ? '5–25 свечей' : '> 25 свечей';
-  document.getElementById('extDistDisplay').textContent = d + ' св. M15 · ' + distCat;
+  // Show section first — so partial failures don't leave it invisible
+  document.getElementById('extSection').classList.add('visible');
 
-  // OI Range
-  const net = _lastMx.net_oi ?? 0;
-  const netStr = net.toFixed(3) + '%';
-  const oiRangeCls = net < 0.20 ? 'ext-badge-stop' : net < 0.34 ? 'ext-badge-warn' : 'ext-badge-ok';
-  const oiRangeLbl = net < 0.20 ? '< 0.2%'
-                   : net < 0.34 ? netStr + ' · 0.2–0.33%'
-                   : net < 0.60 ? netStr + ' · 0.34–0.59%'
-                   : net < 1.00 ? netStr + ' · 0.6–0.99%'
-                   :               netStr + ' · ≥ 1%';
-  document.getElementById('extOiRangeDisplay').innerHTML =
-    '<span class="' + oiRangeCls + '">' + oiRangeLbl + '</span>';
-
-  // OI Type
-  const oiType = _mvpOiType(_lastMx.oiCandles, _lastMx.gross_oi ?? 0);
-  document.getElementById('extOiTypeDisplay').textContent = OI_TYPE_LABELS[oiType] || '—';
-
-  // MACD
-  initExtMacd();
-
-  // Reset selections
-  extSyncReturn();
+  // Reset UI
   _extTrend = null;
   _lastExtSc = null;
   document.getElementById('extTrendLong').className  = 'ext-trend-btn';
@@ -852,7 +830,38 @@ function initExtSection() {
   document.getElementById('extResult').innerHTML   = '';
   document.getElementById('extCombined').innerHTML = '';
 
-  document.getElementById('extSection').classList.add('visible');
+  try {
+    // Distance
+    const d = _lastDet.inversion.idx - _lastDet.pivot.idx;
+    const distCat = d <= 4 ? '1–4 свечи' : d <= 25 ? '5–25 свечей' : '> 25 свечей';
+    document.getElementById('extDistDisplay').textContent = d + ' св. M15 · ' + distCat;
+  } catch(e) { console.error('extDist:', e); }
+
+  try {
+    // OI Range
+    const net = _lastMx.net_oi ?? 0;
+    const netStr = net.toFixed(3) + '%';
+    const oiRangeCls = net < 0.20 ? 'ext-badge-stop' : net < 0.34 ? 'ext-badge-warn' : 'ext-badge-ok';
+    const oiRangeLbl = net < 0.20 ? '< 0.2%'
+                     : net < 0.34 ? netStr + ' · 0.2–0.33%'
+                     : net < 0.60 ? netStr + ' · 0.34–0.59%'
+                     : net < 1.00 ? netStr + ' · 0.6–0.99%'
+                     :               netStr + ' · ≥ 1%';
+    document.getElementById('extOiRangeDisplay').innerHTML =
+      '<span class="' + oiRangeCls + '">' + oiRangeLbl + '</span>';
+  } catch(e) { console.error('extOiRange:', e); }
+
+  try {
+    // OI Type
+    const oiType = _mvpOiType(_lastMx.oiCandles, _lastMx.gross_oi ?? 0);
+    document.getElementById('extOiTypeDisplay').textContent = OI_TYPE_LABELS[oiType] || '—';
+  } catch(e) { console.error('extOiType:', e); }
+
+  // MACD
+  initExtMacd();
+
+  // Return field sync
+  extSyncReturn();
 }
 
 function initExtMacd() {
