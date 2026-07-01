@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782869398">
+  <link rel="stylesheet" href="css/style.css?v=1782870396">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782869398"></script>
-<script src="js/detection.js?v=1782869398"></script>
-<script src="js/metrics.js?v=1782869398"></script>
-<script src="js/scoring.js?v=1782869398"></script>
+<script src="js/parser.js?v=1782870396"></script>
+<script src="js/detection.js?v=1782870396"></script>
+<script src="js/metrics.js?v=1782870396"></script>
+<script src="js/scoring.js?v=1782870396"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -404,6 +404,18 @@ function buildReport(sc, det, mx) {
   const rowsAfter = [
     ['H1 limb', 'сторона ликвидаций H1', h1LimbHtml(mx.h1_limb_pct)],
   ];
+
+  const _ls   = mx.h1_liqshare_pct ?? 0;
+  const _lmb  = mx.h1_limb_pct ?? 0;
+  const _labs = Math.abs(_lmb);
+  const _lopp = det.direction === 'long' ? _lmb > 0 : _lmb < 0;
+  let limbNote = '';
+  if (_lopp && _ls > 1 && _labs > 25) {
+    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#e05555">⚠ Значимые ликвидации против направления — H1 ликвидации перевешивают против сделки. Риск что OI рос за счёт противоположной стороны</div>`;
+  } else if (_lopp && _ls > 0.2 && _labs > 30) {
+    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#d4a017">⚠ Незначительный перевес ликвидаций против направления — в H1 окне противоположная сторона закрывалась активнее при росте OI</div>`;
+  }
+
   const crossComment = (mx.share_fvg ?? 0) >= 0.5 && (mx.ip_zone === 'strong' || mx.ip_zone === 'weak')
     ? `<div class="block-disclaimer" style="margin:6px 0 2px">Доля OI внутри имбаланса и implied_price совпадают по зоне — OI будет защищать уровень при тесте.</div>`
     : '';
@@ -412,7 +424,8 @@ function buildReport(sc, det, mx) {
     rowsBefore.map(renderRow).join('') +
     oiZoneHtml(mx.share_below, mx.share_fvg, mx.share_inv, pctStr) +
     crossComment +
-    rowsAfter.map(renderRow).join('');
+    rowsAfter.map(renderRow).join('') +
+    limbNote;
 
   const detailsCard = `
     <div class="rc">
