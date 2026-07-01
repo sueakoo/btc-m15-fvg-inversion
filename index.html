@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782942391">
+  <link rel="stylesheet" href="css/style.css?v=1782942908">
 </head>
 <body>
 <div class="app">
@@ -160,6 +160,8 @@
     <div id="extResult"></div>
     <div id="extCombined"></div>
 
+    <button class="btn-save" id="btnSave" onclick="openSaveModal()">Сохранить сетап</button>
+
   </div>
 
 </div>
@@ -227,11 +229,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782942391"></script>
-<script src="js/detection.js?v=1782942391"></script>
-<script src="js/metrics.js?v=1782942391"></script>
-<script src="js/scoring.js?v=1782942391"></script>
-<script src="js/scoring_mvp.js?v=1782942391"></script>
+<script src="js/parser.js?v=1782942908"></script>
+<script src="js/detection.js?v=1782942908"></script>
+<script src="js/metrics.js?v=1782942908"></script>
+<script src="js/scoring.js?v=1782942908"></script>
+<script src="js/scoring_mvp.js?v=1782942908"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -560,8 +562,7 @@ function buildReport(sc, det, mx) {
       ${detailsHtml}
     </div>`;
 
-  const saveBtn = `<button class="btn-save" id="btnSave" onclick="openSaveModal()">Сохранить сетап</button>`;
-  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard + saveBtn;
+  return verdictCard + conclusionCard + stopHtml + redHtml + blocksCard + testCard + metricsCard + detailsCard;
 }
 
 // ── Запуск анализа ────────────────────────────────────────────
@@ -682,6 +683,23 @@ function confirmSave() {
     cvd_sign_inv: mx.inv?.cvd_sign ?? null,
     actual_test_price: actualTestPrice ? parseFloat(actualTestPrice) || actualTestPrice : null,
     no_test_prob: sc.noTestProb ?? null,
+    // Расширенный анализ
+    ext_trend:        _extTrend || null,
+    ext_setup_type:   _lastExtSc?.setupType   || null,
+    ext_score:        _lastExtSc?.score        ?? null,
+    ext_verdict:      _lastExtSc?.verdict      || null,
+    ext_sweep:        _lastExtSc ? document.getElementById('extSweep').value     : null,
+    ext_imbalance:    _lastExtSc ? document.getElementById('extImbalance').value : null,
+    ext_ob:           _lastExtSc ? document.getElementById('extOb').value        : null,
+    ext_return:       _lastExtSc ? document.getElementById('extReturn').value    : null,
+    ext_macd:         _lastExtSc ? getExtMacd() : null,
+    ext_oi_range:     _lastExtSc?.oiRange      || null,
+    ext_oi_type:      _lastExtSc?.oiType       || null,
+    ext_distance:     _lastExtSc?.distance     || null,
+    ext_stop_reasons: _lastExtSc?.stopReasons  || null,
+    ext_red_flags:    _lastExtSc?.redFlags     || null,
+    ext_is_golden:    _lastExtSc?.golden?.isGolden || false,
+    ext_golden_type:  _lastExtSc?.golden?.type || null,
   };
 
   const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
