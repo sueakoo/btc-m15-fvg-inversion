@@ -519,26 +519,53 @@ body {
 .ext-trend-details { margin-top: 10px; }
 .ext-trend-details summary {
   font-size: 11px;
-  color: #444;
+  color: #555;
   cursor: pointer;
   list-style: none;
   outline: none;
   user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: color 0.15s;
 }
 .ext-trend-details summary::-webkit-details-marker { display: none; }
-.ext-trend-details summary:hover { color: #777; }
-.ext-trend-info {
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: #0c0c0c;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #777;
-  line-height: 1.75;
+.ext-trend-details summary:hover { color: #888; }
+.ext-trend-details summary::after {
+  content: '›';
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.15s;
 }
-.ext-trend-info p { margin: 0 0 8px; }
+.ext-trend-details[open] summary::after { transform: rotate(90deg); }
+
+.ext-sum-long  { color: #3fb950 !important; }
+.ext-sum-short { color: #e05555 !important; }
+.ext-sum-long:hover  { color: #5fd070 !important; }
+.ext-sum-short:hover { color: #f07070 !important; }
+
+.ext-trend-info {
+  margin: 10px -16px -14px;
+  padding: 16px 16px 18px;
+  background: #1a1a1a;
+  border-top: 1px solid #252525;
+  border-radius: 0 0 8px 8px;
+  font-size: 13px;
+  color: #c0c0c0;
+  line-height: 1.85;
+}
+.ext-trend-info p { margin: 0 0 10px; }
 .ext-trend-info p:last-child { margin-bottom: 0; }
-.ext-trend-info b { color: #aaa; }
+.ext-trend-info b { color: #e0e0e0; }
+.ext-trend-img {
+  width: 100%;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  display: block;
+  border: 1px solid #2a2a2a;
+}
 
 /* Fields */
 .ext-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -604,7 +631,10 @@ body {
   transition: border-color 0.15s;
 }
 .ext-macd-opt:hover { border-color: #2a2a2a; }
-.ext-macd-opt input { accent-color: #3fb950; }
+.ext-macd-long  input[type=radio] { accent-color: #3fb950; }
+.ext-macd-short input[type=radio] { accent-color: #e05555; }
+.ext-macd-long:has(input:checked)  { border-color: #1d6f42; color: #3fb950; background: #0a1a0a; }
+.ext-macd-short:has(input:checked) { border-color: #6f1d1d; color: #e05555; background: #1a0a0a; }
 
 /* Calc button */
 .ext-calc-btn {
@@ -723,23 +753,26 @@ body {
 
 /* Combined conclusion */
 .ext-combined-card {
-  background: #0f0f0f;
-  border: 1px solid #1c1c1c;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-top: 2px solid #2ea043;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 16px 18px 18px;
+  margin-top: 4px;
   margin-bottom: 8px;
 }
 .ext-combined-label {
   font-size: 10px;
   font-weight: 700;
-  color: #383838;
+  color: #3fb950;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 8px;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
 }
 .ext-combined-text {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: #c8c8c8;
+  font-weight: 500;
   line-height: 1.75;
 }
 

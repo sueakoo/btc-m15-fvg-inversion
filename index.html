@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782919095">
+  <link rel="stylesheet" href="css/style.css?v=1782920055">
 </head>
 <body>
 <div class="app">
@@ -57,8 +57,9 @@
         ⚠ СТРОГАЯ РЕКОМЕНДАЦИЯ: риск/ревард 1:1, встать в б/у до слома старшей структуры
       </div>
       <details class="ext-trend-details">
-        <summary>▸ Как определять тренд D</summary>
+        <summary id="extTrendSummary">Как определять тренд D</summary>
         <div class="ext-trend-info">
+          <img src="img/trend-d-structure.png" alt="Структура D" class="ext-trend-img" onerror="this.style.display='none'">
           <p>Перед поиском сделки необходимо определить тренд на D. Тренд считается действующим, пока дневная структура не сломана.</p>
           <p><b>Слом структуры на D</b> фиксируется, если ключевая вершина (для лонга — минимум) пробита телом свечи и следующая свеча закрепляет этот пробой. Пробой одной свечой без закрепления — ложный.</p>
           <p>Более ранний признак смены — <b>SMS на D</b>: слом микроструктуры до слома глобальной структуры.</p>
@@ -210,11 +211,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782919095"></script>
-<script src="js/detection.js?v=1782919095"></script>
-<script src="js/metrics.js?v=1782919095"></script>
-<script src="js/scoring.js?v=1782919095"></script>
-<script src="js/scoring_mvp.js?v=1782919095"></script>
+<script src="js/parser.js?v=1782920055"></script>
+<script src="js/detection.js?v=1782920055"></script>
+<script src="js/metrics.js?v=1782920055"></script>
+<script src="js/scoring.js?v=1782920055"></script>
+<script src="js/scoring_mvp.js?v=1782920055"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -872,8 +873,8 @@ function initExtMacd() {
     row.className = 'ext-macd-row';
     row.innerHTML =
       '<span class="ext-macd-tf">' + label + '</span>' +
-      '<label class="ext-macd-opt"><input type="radio" name="extMacd_' + id + '" value="long"> Лонг</label>' +
-      '<label class="ext-macd-opt"><input type="radio" name="extMacd_' + id + '" value="short"> Шорт</label>';
+      '<label class="ext-macd-opt ext-macd-long"><input type="radio" name="extMacd_' + id + '" value="long"> Лонг</label>' +
+      '<label class="ext-macd-opt ext-macd-short"><input type="radio" name="extMacd_' + id + '" value="short"> Шорт</label>';
     box.appendChild(row);
   });
 }
@@ -882,6 +883,8 @@ function setExtTrend(dir) {
   _extTrend = dir;
   document.getElementById('extTrendLong').className  = 'ext-trend-btn' + (dir === 'long'  ? ' ext-trend-sel-long'  : '');
   document.getElementById('extTrendShort').className = 'ext-trend-btn' + (dir === 'short' ? ' ext-trend-sel-short' : '');
+  const sumEl = document.getElementById('extTrendSummary');
+  if (sumEl) sumEl.className = dir === 'long' ? 'ext-sum-long' : 'ext-sum-short';
   updateExtSetupTag();
 }
 
