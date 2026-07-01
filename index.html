@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782869105">
+  <link rel="stylesheet" href="css/style.css?v=1782869398">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782869105"></script>
-<script src="js/detection.js?v=1782869105"></script>
-<script src="js/metrics.js?v=1782869105"></script>
-<script src="js/scoring.js?v=1782869105"></script>
+<script src="js/parser.js?v=1782869398"></script>
+<script src="js/detection.js?v=1782869398"></script>
+<script src="js/metrics.js?v=1782869398"></script>
+<script src="js/scoring.js?v=1782869398"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -196,12 +196,12 @@ function h1LimbHtml(limbPct) {
   const abs        = Math.abs(limbPct).toFixed(0);
   const longShare  = ((1 + limbPct / 100) / 2 * 100).toFixed(1);
   const shortShare = ((1 - limbPct / 100) / 2 * 100).toFixed(1);
-  const G = '#3fb950', R = '#e05555';
-  const lStr = `<span style="color:${G}">лонгов</span>`;
-  const sStr = `<span style="color:${R}">шортов</span>`;
-  if (Math.abs(limbPct) < 5) return `поровну · ${lStr} ${longShare}%, ${sStr} ${shortShare}%`;
-  const side = limbPct > 0 ? lStr : sStr;
-  return `на ${abs}% перевес ликвидаций в сторону ${side}<br>Из 100% ликвидаций: <span style="color:${G}">${longShare}% — лонгов</span>, <span style="color:${R}">${shortShare}% — шортов</span>`;
+  const G = '#3fb950', R = '#e05555', N = '#555';
+  const sub = `<br><span style="font-size:10px;color:${N}">Из 100% ликвидаций: </span><span style="font-size:10px;color:${G}">${longShare}% — лонгов</span><span style="font-size:10px;color:${N}">, </span><span style="font-size:10px;color:${R}">${shortShare}% — шортов</span>`;
+  if (Math.abs(limbPct) < 5) return `<span style="color:${N}">поровну</span>${sub}`;
+  const C = limbPct > 0 ? G : R;
+  const side = limbPct > 0 ? 'лонгов' : 'шортов';
+  return `<span style="color:${C}">перевес ликвидаций в сторону ${side} на ${abs}%</span>${sub}`;
 }
 
 function h1CvdHtml(sign) {
