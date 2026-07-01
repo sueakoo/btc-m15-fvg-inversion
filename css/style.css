@@ -548,23 +548,42 @@ body {
 
 .ext-trend-info {
   margin: 10px -16px -14px;
-  padding: 16px 16px 18px;
-  background: #1a1a1a;
-  border-top: 1px solid #252525;
+  padding: 20px 18px 22px;
+  background: #f0ede8;
+  border-top: 1px solid #d8d4ce;
   border-radius: 0 0 8px 8px;
   font-size: 13px;
-  color: #c0c0c0;
+  color: #2a2a2a;
   line-height: 1.85;
 }
-.ext-trend-info p { margin: 0 0 10px; }
-.ext-trend-info p:last-child { margin-bottom: 0; }
-.ext-trend-info b { color: #e0e0e0; }
+.ext-ti-lead {
+  margin: 0 0 16px;
+  color: #444;
+  font-size: 13px;
+}
+.ext-ti-section { margin-bottom: 14px; }
+.ext-ti-section:last-of-type { margin-bottom: 16px; }
+.ext-ti-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.ext-ti-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #333;
+}
+.ext-ti-list li { margin-bottom: 4px; }
+.ext-ti-list b { color: #111; }
 .ext-trend-img {
   width: 100%;
   border-radius: 6px;
-  margin-bottom: 14px;
+  margin-top: 4px;
   display: block;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #c8c4be;
 }
 
 /* Fields */

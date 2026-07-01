@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782941828">
+  <link rel="stylesheet" href="css/style.css?v=1782942391">
 </head>
 <body>
 <div class="app">
@@ -59,10 +59,26 @@
       <details class="ext-trend-details">
         <summary id="extTrendSummary">Как определять тренд D</summary>
         <div class="ext-trend-info">
+          <p class="ext-ti-lead">Перед поиском сделки определяем тренд на D. Тренд действует, пока дневная структура не сломана.</p>
+
+          <div class="ext-ti-section">
+            <div class="ext-ti-heading">Слом структуры D</div>
+            <ul class="ext-ti-list">
+              <li>Ключевая вершина (для лонга — минимум, для шорта — максимум) пробита <b>телом</b> свечи</li>
+              <li>Следующая свеча <b>закрепляет</b> пробой закрытием по ту сторону</li>
+              <li>Пробой одной свечой без закрепления — <b>ложный</b>, сломом не считается</li>
+            </ul>
+          </div>
+
+          <div class="ext-ti-section">
+            <div class="ext-ti-heading">SMS — ранний признак смены</div>
+            <ul class="ext-ti-list">
+              <li>Слом <b>микроструктуры</b> на D происходит раньше слома глобальной структуры</li>
+              <li>Служит первым предупреждением о возможном развороте тренда</li>
+            </ul>
+          </div>
+
           <img src="img/trend-d-structure.png" alt="Структура D" class="ext-trend-img" onerror="this.style.display='none'">
-          <p>Перед поиском сделки необходимо определить тренд на D. Тренд считается действующим, пока дневная структура не сломана.</p>
-          <p><b>Слом структуры на D</b> фиксируется, если ключевая вершина (для лонга — минимум) пробита телом свечи и следующая свеча закрепляет этот пробой. Пробой одной свечой без закрепления — ложный.</p>
-          <p>Более ранний признак смены — <b>SMS на D</b>: слом микроструктуры до слома глобальной структуры.</p>
         </div>
       </details>
     </div>
@@ -211,11 +227,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782941828"></script>
-<script src="js/detection.js?v=1782941828"></script>
-<script src="js/metrics.js?v=1782941828"></script>
-<script src="js/scoring.js?v=1782941828"></script>
-<script src="js/scoring_mvp.js?v=1782941828"></script>
+<script src="js/parser.js?v=1782942391"></script>
+<script src="js/detection.js?v=1782942391"></script>
+<script src="js/metrics.js?v=1782942391"></script>
+<script src="js/scoring.js?v=1782942391"></script>
+<script src="js/scoring_mvp.js?v=1782942391"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
