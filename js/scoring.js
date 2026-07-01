@@ -759,6 +759,16 @@ function _redFlags(b, mx, det) {
   if ((mx?.inv?.body_pct ?? 100) < 40) {
     flags.push('Тело инверсионной свечи менее 40% — слабый захват момента, риск пробоя зоны повышен');
   }
+  // L1/L2 — перевес ликвидаций против направления
+  const _liqShare = mx?.h1_liqshare_pct ?? 0;
+  const _limb     = mx?.h1_limb_pct ?? 0;
+  const _limbAbs  = Math.abs(_limb);
+  const _limbOpp  = _limbAgainst(_limb, det?.direction);
+  if (_limbOpp && _liqShare > 1 && _limbAbs > 25) {
+    flags.push('⚠ Значимые ликвидации против направления — H1 ликвидации перевешивают против сделки. Риск что OI рос за счёт противоположной стороны');
+  } else if (_limbOpp && _liqShare > 0.2 && _limbAbs > 30) {
+    flags.push('⚠ Незначительный перевес ликвидаций против направления — в H1 окне противоположная сторона закрывалась активнее при росте OI');
+  }
   return flags;
 }
 
