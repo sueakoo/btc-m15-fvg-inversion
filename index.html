@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782908743">
+  <link rel="stylesheet" href="css/style.css?v=1782918693">
 </head>
 <body>
 <div class="app">
@@ -35,6 +35,115 @@
 
   <div class="errors" id="errors"></div>
   <div class="report" id="report"></div>
+
+  <!-- ── Расширенный анализ ─────────────────────────────────── -->
+  <div class="ext-section" id="extSection">
+
+    <div class="ext-divider">
+      <div class="ext-divider-line"></div>
+      <span class="ext-divider-label">Расширенный анализ</span>
+      <div class="ext-divider-line"></div>
+    </div>
+
+    <!-- Тренд D -->
+    <div class="ext-card">
+      <div class="ext-card-label">Тренд D</div>
+      <div class="ext-trend-row">
+        <button class="ext-trend-btn" id="extTrendLong"  onclick="setExtTrend('long')">ЛОНГ</button>
+        <button class="ext-trend-btn" id="extTrendShort" onclick="setExtTrend('short')">ШОРТ</button>
+      </div>
+      <div id="extSetupTypeTag" style="margin-top:8px;display:flex;align-items:center;gap:8px;min-height:24px"></div>
+      <div id="extCounterBanner" class="ext-counter-banner" style="display:none">
+        ⚠ СТРОГАЯ РЕКОМЕНДАЦИЯ: риск/ревард 1:1, встать в б/у до слома старшей структуры
+      </div>
+      <details class="ext-trend-details">
+        <summary>▸ Как определять тренд D</summary>
+        <div class="ext-trend-info">
+          <p>Перед поиском сделки необходимо определить тренд на D. Тренд считается действующим, пока дневная структура не сломана.</p>
+          <p><b>Слом структуры на D</b> фиксируется, если ключевая вершина (для лонга — минимум) пробита телом свечи и следующая свеча закрепляет этот пробой. Пробой одной свечой без закрепления — ложный.</p>
+          <p>Более ранний признак смены — <b>SMS на D</b>: слом микроструктуры до слома глобальной структуры.</p>
+        </div>
+      </details>
+    </div>
+
+    <!-- Старший фактор -->
+    <div class="ext-card">
+      <div class="ext-card-label">Старший фактор</div>
+      <div class="ext-row">
+        <div class="ext-field">
+          <span class="ext-field-label">Снятие ликвидности</span>
+          <select id="extSweep" class="ext-select" onchange="extSyncReturn()">
+            <option value="none">Снятия нет</option>
+            <option value="h4">Снятие H4</option>
+            <option value="d">Снятие D</option>
+            <option value="w">Снятие W</option>
+          </select>
+        </div>
+        <div class="ext-field">
+          <span class="ext-field-label">Тест имбаланса</span>
+          <select id="extImbalance" class="ext-select">
+            <option value="none">Теста нет</option>
+            <option value="h4">Тест имба H4</option>
+            <option value="d">Тест имба D</option>
+            <option value="w">Тест имба W</option>
+          </select>
+        </div>
+      </div>
+      <div class="ext-field">
+        <span class="ext-field-label">Тест OB</span>
+        <select id="extOb" class="ext-select">
+          <option value="none">OB нет</option>
+          <option value="h4">Тест OB H4</option>
+          <option value="dw">Тест OB D/W</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Возврат и дистанция -->
+    <div class="ext-card">
+      <div class="ext-card-label">Возврат и дистанция</div>
+      <div class="ext-row">
+        <div class="ext-field">
+          <span class="ext-field-label">Возврат за снятый уровень</span>
+          <select id="extReturn" class="ext-select" disabled>
+            <option value="no">Возврата не было</option>
+            <option value="yes">Возврат был</option>
+          </select>
+        </div>
+        <div class="ext-field">
+          <span class="ext-field-label">Дистанция · авто</span>
+          <div class="ext-auto-val" id="extDistDisplay">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OI авто -->
+    <div class="ext-card">
+      <div class="ext-card-label">OI · авто</div>
+      <div class="ext-row">
+        <div class="ext-field">
+          <span class="ext-field-label">Чистый OI (net)</span>
+          <div class="ext-auto-val" id="extOiRangeDisplay">—</div>
+        </div>
+        <div class="ext-field">
+          <span class="ext-field-label">Тип набора OI</span>
+          <div class="ext-auto-val" id="extOiTypeDisplay">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MACD -->
+    <div class="ext-card">
+      <div class="ext-card-label">MACD</div>
+      <div id="extMacdBox"></div>
+    </div>
+
+    <button class="ext-calc-btn" onclick="calculateExt()">Рассчитать</button>
+
+    <div id="extResult"></div>
+    <div id="extCombined"></div>
+
+  </div>
 
 </div>
 
@@ -101,10 +210,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782908743"></script>
-<script src="js/detection.js?v=1782908743"></script>
-<script src="js/metrics.js?v=1782908743"></script>
-<script src="js/scoring.js?v=1782908743"></script>
+<script src="js/parser.js?v=1782918693"></script>
+<script src="js/detection.js?v=1782918693"></script>
+<script src="js/metrics.js?v=1782918693"></script>
+<script src="js/scoring.js?v=1782918693"></script>
+<script src="js/scoring_mvp.js?v=1782918693"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -470,6 +580,7 @@ function runAnalysis() {
   reportEl.innerHTML = buildReport(sc, det, mx);
   reportEl.classList.add('visible');
   reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  initExtSection();
 }
 
 // ── Сохранение и экспорт ─────────────────────────────────────
@@ -694,6 +805,166 @@ function deleteAllSetups() {
 
 updateExportBtn();
 updateSetupsBtn();
+
+// ── Расширенный анализ ────────────────────────────────────────
+let _extTrend = null, _lastExtSc = null;
+const EXT_TFS = [['m15','M15'],['h1','H1'],['h2','H2'],['h4','H4'],['d','D']];
+
+const OI_RANGE_LABELS = { lt02:'< 0.2%', '02_033':'0.2–0.33%', '034_059':'0.34–0.59%', '06_099':'0.6–0.99%', gte1:'≥ 1%' };
+const OI_TYPE_LABELS  = { impulse13:'Импульсный · 1–3 св.', cluster46:'Кластер · 4–6 св.', micro:'Микронаборы', longMicro:'Длинный · микро' };
+const DIST_LABELS     = { '1_4':'1–4 свечи', '5_25':'5–25 свечей', gt25:'> 25 свечей' };
+
+function initExtSection() {
+  if (!_lastDet || !_lastMx) return;
+
+  // Distance
+  const d = _lastDet.inversion.idx - _lastDet.pivot.idx;
+  const distCat = d <= 4 ? '1–4 свечи' : d <= 25 ? '5–25 свечей' : '> 25 свечей';
+  document.getElementById('extDistDisplay').textContent = d + ' св. M15 · ' + distCat;
+
+  // OI Range
+  const net = _lastMx.net_oi ?? 0;
+  const netStr = net.toFixed(3) + '%';
+  const oiRangeCls = net < 0.20 ? 'ext-badge-stop' : net < 0.34 ? 'ext-badge-warn' : 'ext-badge-ok';
+  const oiRangeLbl = net < 0.20 ? '< 0.2%'
+                   : net < 0.34 ? netStr + ' · 0.2–0.33%'
+                   : net < 0.60 ? netStr + ' · 0.34–0.59%'
+                   : net < 1.00 ? netStr + ' · 0.6–0.99%'
+                   :               netStr + ' · ≥ 1%';
+  document.getElementById('extOiRangeDisplay').innerHTML =
+    '<span class="' + oiRangeCls + '">' + oiRangeLbl + '</span>';
+
+  // OI Type
+  const oiType = _mvpOiType(_lastMx.oiCandles, _lastMx.gross_oi ?? 0);
+  document.getElementById('extOiTypeDisplay').textContent = OI_TYPE_LABELS[oiType] || '—';
+
+  // MACD
+  initExtMacd();
+
+  // Reset selections
+  extSyncReturn();
+  _extTrend = null;
+  _lastExtSc = null;
+  document.getElementById('extTrendLong').className  = 'ext-trend-btn';
+  document.getElementById('extTrendShort').className = 'ext-trend-btn';
+  document.getElementById('extSetupTypeTag').innerHTML = '';
+  document.getElementById('extCounterBanner').style.display = 'none';
+  document.getElementById('extResult').innerHTML   = '';
+  document.getElementById('extCombined').innerHTML = '';
+
+  document.getElementById('extSection').classList.add('visible');
+}
+
+function initExtMacd() {
+  const box = document.getElementById('extMacdBox');
+  box.innerHTML = '';
+  EXT_TFS.forEach(function([id, label]) {
+    const row = document.createElement('div');
+    row.className = 'ext-macd-row';
+    row.innerHTML =
+      '<span class="ext-macd-tf">' + label + '</span>' +
+      '<label class="ext-macd-opt"><input type="radio" name="extMacd_' + id + '" value="long"> Лонг</label>' +
+      '<label class="ext-macd-opt"><input type="radio" name="extMacd_' + id + '" value="short"> Шорт</label>';
+    box.appendChild(row);
+  });
+}
+
+function setExtTrend(dir) {
+  _extTrend = dir;
+  document.getElementById('extTrendLong').className  = 'ext-trend-btn' + (dir === 'long'  ? ' ext-trend-sel-long'  : '');
+  document.getElementById('extTrendShort').className = 'ext-trend-btn' + (dir === 'short' ? ' ext-trend-sel-short' : '');
+  updateExtSetupTag();
+}
+
+function updateExtSetupTag() {
+  if (!_extTrend || !_lastDet) return;
+  const isCounter = _extTrend !== _lastDet.direction;
+  const dirText = _lastDet.direction === 'long' ? 'ЛОНГ' : 'ШОРТ';
+  const dirCls  = _lastDet.direction === 'long' ? 'ext-dir-long' : 'ext-dir-short';
+  const typeCls  = isCounter ? 'ext-type-counter' : 'ext-type-trend';
+  const typeText = isCounter ? 'Контртрендовый сетап' : 'Трендовый сетап';
+  document.getElementById('extSetupTypeTag').innerHTML =
+    '<span class="' + typeCls + '">' + typeText + '</span>' +
+    '<span class="ext-dir-badge ' + dirCls + '">' + dirText + '</span>';
+  document.getElementById('extCounterBanner').style.display = isCounter ? 'block' : 'none';
+}
+
+function extSyncReturn() {
+  const sweep = document.getElementById('extSweep').value;
+  const ret   = document.getElementById('extReturn');
+  ret.disabled = sweep === 'none';
+  if (sweep === 'none') ret.value = 'no';
+}
+
+function getExtMacd() {
+  const m = {};
+  EXT_TFS.forEach(function([id]) {
+    const el = document.querySelector('input[name="extMacd_' + id + '"]:checked');
+    m[id] = el ? el.value : '';
+  });
+  return m;
+}
+
+function calculateExt() {
+  if (!_lastDet || !_lastMx) { alert('Сначала запустите основной анализ'); return; }
+  if (!_extTrend) { alert('Выберите направление тренда D'); return; }
+  const data = {
+    trend:       _extTrend,
+    sweep:       document.getElementById('extSweep').value,
+    imbalance:   document.getElementById('extImbalance').value,
+    ob:          document.getElementById('extOb').value,
+    returnLevel: document.getElementById('extReturn').value,
+    macd:        getExtMacd(),
+  };
+  const sc2 = computeMvpScore(data, _lastDet, _lastMx);
+  _lastExtSc = sc2;
+  renderExtResult(sc2);
+  if (_lastSc) renderExtCombined(_lastSc, sc2);
+}
+
+function renderExtResult(sc) {
+  const vv  = sc.verdict.split(' · ')[0];
+  const cls = sc.hasStop || vv === 'НЕ БРАТЬ'       ? 'ext-verdict-stop'
+            : vv === 'СИЛЬНЫЙ СЕТАП'                 ? 'ext-verdict-strong'
+            : vv === 'РАБОЧИЙ СЕТАП'                 ? 'ext-verdict-ok'
+            : vv === 'УСЛОВНО РАБОЧИЙ СЕТАП'         ? 'ext-verdict-warn'
+            : 'ext-verdict-stop';
+
+  const stops = sc.stopReasons.length
+    ? '<div class="ext-res-stops">' + sc.stopReasons.map(s => '<div class="ext-flag-stop">⛔ ' + s + '</div>').join('') + '</div>' : '';
+  const reds  = sc.redFlags.length
+    ? '<div class="ext-res-reds">'  + sc.redFlags.map(r => '<div class="ext-flag-red">⚠ '  + r + '</div>').join('') + '</div>' : '';
+  const dets  = sc.details.length
+    ? '<div class="ext-res-details"><ul>' + sc.details.map(d => '<li>' + d + '</li>').join('') + '</ul></div>' : '';
+  const golden = sc.golden && sc.golden.isGolden
+    ? '<div class="ext-golden"><div class="ext-golden-badge">★ Золотой сетап</div><div class="ext-golden-type">' + sc.golden.type + '</div><div class="ext-golden-comment">' + sc.golden.comment + '</div></div>' : '';
+
+  document.getElementById('extResult').innerHTML =
+    '<div class="ext-res-card">' +
+      '<div class="ext-res-header">' +
+        '<span class="ext-res-score">' + sc.score + '</span>' +
+        '<span class="ext-verdict-badge ' + cls + '">' + sc.verdict + '</span>' +
+        '<span class="ext-res-type">' + (sc.setupType === 'trend' ? 'трендовый' : 'контртрендовый') + '</span>' +
+      '</div>' +
+      golden +
+      '<div class="ext-res-summary">' + sc.summary + '</div>' +
+      stops + reds + dets +
+      '<div class="ext-res-auto">' +
+        '<span>net OI: <b>' + (sc.netOi ?? 0).toFixed(3) + '%</b> · ' + (OI_RANGE_LABELS[sc.oiRange] || '—') + '</span>' +
+        '<span>тип OI: <b>' + (OI_TYPE_LABELS[sc.oiType] || '—') + '</b></span>' +
+        '<span>дистанция: <b>' + (DIST_LABELS[sc.distance] || '—') + '</b></span>' +
+      '</div>' +
+    '</div>';
+}
+
+function renderExtCombined(sc1, sc2) {
+  const text = buildCombinedConclusion(sc1, sc2);
+  document.getElementById('extCombined').innerHTML =
+    '<div class="ext-combined-card">' +
+      '<div class="ext-combined-label">Общий вывод</div>' +
+      '<div class="ext-combined-text">' + text + '</div>' +
+    '</div>';
+}
 </script>
 
 </body>
