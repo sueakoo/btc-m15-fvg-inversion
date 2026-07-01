@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782854301">
+  <link rel="stylesheet" href="css/style.css?v=1782866988">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782854301"></script>
-<script src="js/detection.js?v=1782854301"></script>
-<script src="js/metrics.js?v=1782854301"></script>
-<script src="js/scoring.js?v=1782854301"></script>
+<script src="js/parser.js?v=1782866988"></script>
+<script src="js/detection.js?v=1782866988"></script>
+<script src="js/metrics.js?v=1782866988"></script>
+<script src="js/scoring.js?v=1782866988"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -193,10 +193,12 @@ function chipColor(label, mx, det) {
 
 function h1LimbHtml(limbPct) {
   if (limbPct == null) return '—';
-  const val = limbPct.toFixed(1) + '%';
-  if (limbPct < -5)  return `<span style="color:#e05555">${val} · ликвидировали шортистов</span>`;
-  if (limbPct > 5)   return `<span style="color:#3fb950">${val} · ликвидировали лонгистов</span>`;
-  return val + ' · поровну';
+  const abs       = Math.abs(limbPct).toFixed(0);
+  const longShare  = ((1 + limbPct / 100) / 2 * 100).toFixed(1);
+  const shortShare = ((1 - limbPct / 100) / 2 * 100).toFixed(1);
+  if (Math.abs(limbPct) < 5) return `поровну · лонгов ${longShare}%, шортов ${shortShare}%`;
+  const side = limbPct > 0 ? 'лонгов' : 'шортов';
+  return `на ${abs}% перевес ликвидаций в сторону ${side}<br>Из 100% ликвидаций: ${longShare}% — лонгов, ${shortShare}% — шортов`;
 }
 
 function h1CvdHtml(sign) {
