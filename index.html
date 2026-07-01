@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1782866988">
+  <link rel="stylesheet" href="css/style.css?v=1782867852">
 </head>
 <body>
 <div class="app">
@@ -101,10 +101,10 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1782866988"></script>
-<script src="js/detection.js?v=1782866988"></script>
-<script src="js/metrics.js?v=1782866988"></script>
-<script src="js/scoring.js?v=1782866988"></script>
+<script src="js/parser.js?v=1782867852"></script>
+<script src="js/detection.js?v=1782867852"></script>
+<script src="js/metrics.js?v=1782867852"></script>
+<script src="js/scoring.js?v=1782867852"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -562,6 +562,21 @@ function exportSetups() {
   URL.revokeObjectURL(url);
 }
 
+function exportSingleSetup(index) {
+  const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
+  const s = all[index];
+  if (!s) return;
+  const date = s.inversion_ts ? s.inversion_ts.replace(/[: ]/g, '-') : new Date(s.saved_at).toISOString().slice(0,10);
+  const dir  = s.direction || 'unknown';
+  const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `fvg_setup_${date}_${dir}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function updateExportBtn() {
   const all = JSON.parse(localStorage.getItem('btc_fvg_setups') || '[]');
   const btn = document.getElementById('btnExport');
@@ -634,7 +649,10 @@ function renderSetupsList() {
             ${s.actual_test_price ? `<span style="color:#666"> · ${s.actual_test_price}</span>` : ''}
           </div>
         </div>
-        <button class="btn-delete-setup" onclick="deleteSetup(${i})" title="Удалить">✕</button>
+        <div style="display:flex;gap:4px">
+          <button class="btn-dl-setup" onclick="exportSingleSetup(${i})" title="Скачать">↓</button>
+          <button class="btn-delete-setup" onclick="deleteSetup(${i})" title="Удалить">✕</button>
+        </div>
       </div>`;
   }).join('');
 }
