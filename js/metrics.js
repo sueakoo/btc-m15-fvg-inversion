@@ -35,10 +35,10 @@ function computeMetrics(m15, h1, det) {
 
   // ── OI метрики (Block 1, 3) ──────────────────────────────
   let gross_oi = 0, unload_oi = 0;
-  for (const c of oiCandles) {
-    const d = c.doi_pct ?? 0;
-    if (d > 0) gross_oi  += d;
-    else        unload_oi += d;
+  for (let _ci = 0; _ci < oiCandles.length; _ci++) {
+    const d = oiCandles[_ci].doi_pct ?? 0;
+    if (d > 0)        gross_oi  += d;
+    else if (_ci > 0) unload_oi += d;  // отрицательный doi_pct пивота не считаем (чужие позиции, не наш сетап)
   }
   const net_oi          = gross_oi + unload_oi;
   const retention_ratio = gross_oi > 0 ? net_oi / gross_oi : null;
