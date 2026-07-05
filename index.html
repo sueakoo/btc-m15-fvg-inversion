@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1783290533">
+  <link rel="stylesheet" href="css/style.css?v=1783290573">
 </head>
 <body>
 <div class="app">
@@ -229,11 +229,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1783290533"></script>
-<script src="js/detection.js?v=1783290533"></script>
-<script src="js/metrics.js?v=1783290533"></script>
-<script src="js/scoring.js?v=1783290533"></script>
-<script src="js/scoring_mvp.js?v=1783290533"></script>
+<script src="js/parser.js?v=1783290573"></script>
+<script src="js/detection.js?v=1783290573"></script>
+<script src="js/metrics.js?v=1783290573"></script>
+<script src="js/scoring.js?v=1783290573"></script>
+<script src="js/scoring_mvp.js?v=1783290573"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -671,7 +671,7 @@ function confirmSave() {
     share_below: mx.share_below, share_fvg: mx.share_fvg, share_inv: mx.share_inv,
     fvg_volume_share: mx.fvg_volume_share,
     h1_doi_pct: mx.h1_doi_pct, h1_liqshare_pct: mx.h1_liqshare_pct,
-    h1_limb_pct: mx.h1_limb_pct, h1_cvd_sign: mx.h1_cvd_sign,
+    h1_limb_pct: mx.h1_limb_pct, m15_cvd_sign: mx.m15_cvd_sign,
     oi_window_count: mx.oi_window_count,
     h1_candle_count: mx.h1_candle_count ?? null,
     // Новые поля
@@ -785,8 +785,8 @@ function renderSetupsList() {
     const dirColor = s.direction === 'long' ? '#3fb950' : '#e05555';
     const vColor   = vColors[s.verdict] || '#888';
     const outcomeColor = s.outcome === 'тейк' ? '#3fb950' : s.outcome === 'стоп' ? '#e05555' : '#666';
-    const cvdIcon  = s.h1_cvd_sign === 1 ? '▲' : s.h1_cvd_sign === -1 ? '▼' : '—';
-    const cvdColor = s.h1_cvd_sign === 1 ? '#3fb950' : s.h1_cvd_sign === -1 ? '#e05555' : '#444';
+    const cvdIcon  = s.m15_cvd_sign === 1 ? '▲' : s.m15_cvd_sign === -1 ? '▼' : '—';
+    const cvdColor = s.m15_cvd_sign === 1 ? '#3fb950' : s.m15_cvd_sign === -1 ? '#e05555' : '#444';
     const testMatch = s.actual_test === s.expected_test_level
       ? `<span style="color:#3fb950">${s.actual_test}</span>`
       : `<span style="color:#d4a017">${s.actual_test || '—'}</span><span style="color:#444"> (ожид. ${s.expected_test_level || '—'})</span>`;
