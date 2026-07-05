@@ -107,18 +107,19 @@ function computeMetrics(m15, h1, det) {
     return t <= tsEnd && new Date(t.getTime() + 3_600_000) > tsStart;
   }) : [];
 
-  let h1DoiSum = 0, h1LiqLong = 0, h1LiqShortAbs = 0, h1Volume = 0, h1CvdSum = 0;
+  let h1DoiSum = 0, h1LiqLong = 0, h1LiqShortAbs = 0, h1Volume = 0;
   for (const c of h1Window) {
     h1DoiSum      += c.doi_pct   ?? 0;
     h1LiqLong     += c.liq_long  ?? 0;
     h1LiqShortAbs += Math.abs(c.liq_short ?? 0);
     h1Volume      += c.volume    ?? 0;
-    h1CvdSum      += c.cvd_pct   ?? 0;
   }
   const h1TotalLiq    = h1LiqLong + h1LiqShortAbs;
   const h1_liqshare   = h1Volume > 0    ? h1TotalLiq / h1Volume * 100         : null;
   const h1_limb       = h1TotalLiq > 0  ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
-  const h1_cvd_sign   = h1CvdSum > 0 ? 1 : h1CvdSum < 0 ? -1 : 0;
+
+  const _m15CvdSum  = oiCandles.reduce((s, c) => s + (c.cvd_pct ?? 0), 0);
+  const m15_cvd_sign = _m15CvdSum > 0 ? 1 : _m15CvdSum < 0 ? -1 : 0;
 
   // ── Арбитражный магнит: среднее implied_price по M15-окну + H1-коррекция ─
   let _m15IpSum = 0, _m15IpCnt = 0;
@@ -237,7 +238,7 @@ function computeMetrics(m15, h1, det) {
     h1_doi_pct:      _r(h1DoiSum,   3),
     h1_liqshare_pct: _r(h1_liqshare, 3),
     h1_limb_pct:     _r(h1_limb,    1),
-    h1_cvd_sign,
+    m15_cvd_sign,
 
     // ── Сырые окна (для блоков 4, 5) ────────
     oiCandles,

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1783099079">
+  <link rel="stylesheet" href="css/style.css?v=1783285999">
 </head>
 <body>
 <div class="app">
@@ -229,11 +229,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1783099079"></script>
-<script src="js/detection.js?v=1783099079"></script>
-<script src="js/metrics.js?v=1783099079"></script>
-<script src="js/scoring.js?v=1783099079"></script>
-<script src="js/scoring_mvp.js?v=1783099079"></script>
+<script src="js/parser.js?v=1783285999"></script>
+<script src="js/detection.js?v=1783285999"></script>
+<script src="js/metrics.js?v=1783285999"></script>
+<script src="js/scoring.js?v=1783285999"></script>
+<script src="js/scoring_mvp.js?v=1783285999"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -382,11 +382,11 @@ function buildReport(sc, det, mx) {
 
   // CVD badge
   const isLong      = det.direction === 'long';
-  const cvdSign     = mx.h1_cvd_sign ?? 0;
+  const cvdSign     = mx.m15_cvd_sign ?? 0;
   const cvdNeutral  = cvdSign === 0;
   const cvdWithDir  = !cvdNeutral && (isLong ? cvdSign > 0 : cvdSign < 0);
   const cvdBadgeCls = cvdNeutral ? 'badge-cvd-neutral' : (cvdSign > 0 ? 'badge-cvd-long' : 'badge-cvd-short');
-  const cvdBadgeTxt = cvdNeutral ? '— H1 CVD' : (cvdSign > 0 ? '▲ H1 CVD лонг' : '▼ H1 CVD шорт');
+  const cvdBadgeTxt = cvdNeutral ? '— CVD' : (cvdSign > 0 ? '▲ CVD лонг' : '▼ CVD шорт');
   const cvdStatusCls = cvdNeutral ? 'cvd-status-neutral' : (cvdWithDir ? 'cvd-status-ok' : 'cvd-status-warn');
 
   // FVG размер

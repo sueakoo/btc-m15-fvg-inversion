@@ -478,7 +478,8 @@ function _scoreBlock8(det, mx) {
 
 // ── Блок 9 — H1 Snapshot (18 pts) ────────────────────────────
 function _scoreBlock9(mx, direction) {
-  const { h1_candle_count, h1_doi_pct, h1_liqshare_pct, h1_limb_pct, h1_cvd_sign } = mx;
+  const { h1_candle_count, h1_doi_pct, h1_liqshare_pct, h1_limb_pct } = mx;
+  const m15_cvd_sign = mx.m15_cvd_sign ?? 0;
 
   if (!h1_candle_count) {
     return {
@@ -506,7 +507,7 @@ function _scoreBlock9(mx, direction) {
 
   if (liq < 2) {
     if (doi >= 0.20) {
-      if (_cvdWithDir(h1_cvd_sign, direction)) {
+      if (_cvdWithDir(m15_cvd_sign, direction)) {
         score   = 18;
         label   = 'Чистый рост: OI набран в направлении сделки';
         comment = 'H1 чистый — новый OI без ликвидаций, поток подтверждает направление.';
@@ -623,15 +624,15 @@ function _scoreBlock9(mx, direction) {
   }
 
   // CVD уточнение ±2 при пограничных значениях
-  if (!cvdExplicit && h1_cvd_sign !== 0 && score > 0 && score < 18) {
+  if (!cvdExplicit && m15_cvd_sign !== 0 && score > 0 && score < 18) {
     const borderDoi = doi >= 0.17 && doi < 0.25;
     const borderLiq = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
     if (borderDoi || borderLiq) {
-      const cvdBonus = _cvdWithDir(h1_cvd_sign, direction) ? 2 : -2;
+      const cvdBonus = _cvdWithDir(m15_cvd_sign, direction) ? 2 : -2;
       score = Math.max(0, Math.min(18, score + cvdBonus));
       comment += cvdBonus > 0
-        ? ' H1 CVD подтверждает — скорректировано вверх.'
-        : ' H1 CVD против — скорректировано вниз.';
+        ? ' CVD M15 подтверждает — скорректировано вверх.'
+        : ' CVD M15 против — скорректировано вниз.';
     }
   }
 
@@ -670,8 +671,8 @@ function _stopFlags(b, mx, det) {
   }
 
   if (b.block4.score <= 6
-      && (mx?.h1_cvd_sign ?? 0) !== 0
-      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
+      && (mx?.m15_cvd_sign ?? 0) !== 0
+      && !_cvdWithDir(mx?.m15_cvd_sign, det?.direction)
       && _limbAgainst(mx?.h1_limb_pct, det?.direction)
       && Math.abs(mx?.h1_limb_pct ?? 0) > 50
       && b.total >= 70) {
@@ -731,19 +732,20 @@ function _redFlags(b, mx, det) {
   if (b.block1.score <= 4 && b.block3.score > 4) {
     flags.push('Ресурс инверсии минимальный — OI при движении через FVG почти отсутствовал. Зона без позиционной основы');
   }
-  // C7 — CVD против направления при высоком балле (требует det)
-  if (mx?.h1_cvd_sign !== 0
-      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
-      && b.total >= 65) {
-    flags.push('⚠ H1 CVD против направления: поток на старшем таймфрейме давил против сделки — рост OI мог быть набором противоположной стороны');
+  // C7 — CVD M15 против направления при высоком балле (не срабатывает при лимитном поглощении)
+  if (mx?.m15_cvd_sign !== 0
+      && !_cvdWithDir(mx?.m15_cvd_sign, det?.direction)
+      && b.total >= 65
+      && b.block4.scenario !== 'absorption') {
+    flags.push('⚠ CVD M15 против направления при высоком балле — net поток за период давил против сделки');
   }
   // C8 — тройная слабость (требует det)
   if (b.block4.score <= 6
-      && mx?.h1_cvd_sign !== 0
-      && !_cvdWithDir(mx?.h1_cvd_sign, det?.direction)
+      && mx?.m15_cvd_sign !== 0
+      && !_cvdWithDir(mx?.m15_cvd_sign, det?.direction)
       && _limbAgainst(mx?.h1_limb_pct, det?.direction)
       && Math.abs(mx?.h1_limb_pct ?? 0) > 50) {
-    flags.push('Тройная слабость: нет захвата инверсии, H1 CVD против направления, перевес ликвидаций против — максимальный риск провала при тесте');
+    flags.push('Тройная слабость: нет захвата инверсии, CVD против направления, перевес ликвидаций против — максимальный риск провала при тесте');
   }
   // C9 — FVG пробита насквозь при высоком балле
   if (b.block3.scenario === 'fvg_fvg'
