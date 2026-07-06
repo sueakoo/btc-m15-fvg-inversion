@@ -95,32 +95,7 @@ function detect(candles) {
     };
   }
 
-  // ── 3. Pivot ──────────────────────────────────────────────
-  // Ищем среди ВСЕХ свечей до firstOverlapIdx.
-  // Равенство → берём более позднюю (<=/>= обновляет при равенстве).
-  let pivotIdx = -1;
-  if (direction === 'long') {
-    let minLow = Infinity;
-    for (let i = 0; i < firstOverlapIdx; i++) {
-      const c = candles[i];
-      if (c.low != null && c.low <= minLow) { minLow = c.low; pivotIdx = i; }
-    }
-  } else {
-    let maxHigh = -Infinity;
-    for (let i = 0; i < firstOverlapIdx; i++) {
-      const c = candles[i];
-      if (c.high != null && c.high >= maxHigh) { maxHigh = c.high; pivotIdx = i; }
-    }
-  }
-
-  if (pivotIdx === -1) {
-    return { ok: false, errors: ['Pivot не определён.'] };
-  }
-
-  const pivotCandle = candles[pivotIdx];
-  const pivotValue  = direction === 'long' ? pivotCandle.low : pivotCandle.high;
-
-  // ── 4. Инверсия ───────────────────────────────────────────
+  // ── 3. Инверсия ───────────────────────────────────────────
   // Первая свеча начиная с firstOverlapIdx, у которой close пересёк границу FVG.
   let invIdx = -1;
   for (let i = firstOverlapIdx; i < candles.length; i++) {
@@ -134,10 +109,35 @@ function detect(candles) {
     return {
       ok: false,
       errors: ['Инверсия не подтверждена: цена вошла в FVG, но close не пересёк границу.'],
-      fvg: { type, direction, upper_fvg, lower_fvg, imb_range_pct, mergedCount },
-      pivot: { idx: pivotIdx, ts: pivotCandle.ts, value: pivotValue }
+      fvg: { type, direction, upper_fvg, lower_fvg, imb_range_pct, mergedCount }
     };
   }
+
+  // ── 4. Pivot ──────────────────────────────────────────────
+  // Шорт: наивысший high выше зоны FVG (high > upper_fvg), до инверсии.
+  // Лонг: наинизший low ниже зоны FVG (low < lower_fvg), до инверсии.
+  // При равных значениях берём более позднюю свечу (>= / <=).
+  let pivotIdx = -1;
+  if (direction === 'long') {
+    let minLow = Infinity;
+    for (let i = 0; i < invIdx; i++) {
+      const c = candles[i];
+      if (c.low != null && c.low < lower_fvg && c.low <= minLow) { minLow = c.low; pivotIdx = i; }
+    }
+  } else {
+    let maxHigh = -Infinity;
+    for (let i = 0; i < invIdx; i++) {
+      const c = candles[i];
+      if (c.high != null && c.high > upper_fvg && c.high >= maxHigh) { maxHigh = c.high; pivotIdx = i; }
+    }
+  }
+
+  if (pivotIdx === -1) {
+    return { ok: false, errors: ['Pivot не определён: нет свечей выше/ниже зоны FVG.'] };
+  }
+
+  const pivotCandle = candles[pivotIdx];
+  const pivotValue  = direction === 'long' ? pivotCandle.low : pivotCandle.high;
 
   const invCandle = candles[invIdx];
 
