@@ -73,7 +73,7 @@ function _mvpGolden(ctx) {
 function _mvpSummaryText(ctx) {
   const { score, hasStop, stopReasons, redFlags, verdict,
           hasSweep, hasImb, hasOb, hasReturn, setupType,
-          sweep, imbalance, ob, distance, oiRange, oiType, mixed } = ctx;
+          sweep, imbalance, ob, distance, oiRange, oiType, mixed, macdAgrees } = ctx;
 
   if (hasStop) return 'Сетап не допускается к работе: ' + stopReasons.join('; ') + '.';
 
@@ -96,6 +96,11 @@ function _mvpSummaryText(ctx) {
   if      (oiType === 'impulse13') S.push('импульсный OI за 1–3 свечи');
   else if (oiType === 'cluster46') S.push('кластер OI 4–6 свечей');
   else if (oiType === 'longMicro') S.push('длинный участок с микронаборами OI');
+  if (macdAgrees === true) {
+    S.push(setupType === 'trend'
+      ? 'Н4/Д MACD совпадает с направлением — старший тренд подтверждает сделку'
+      : 'старший тренд (Н4/Д) ещё в прежнюю сторону — контекст для контртренда подходящий');
+  }
 
   if (!hasSweep && hasImb)           L.push('нет снятия — только тест имбаланса');
   if (hasSweep && !hasImb && !hasOb) L.push('есть снятие, но нет теста имбаланса или OB');
@@ -190,12 +195,18 @@ function computeMvpScore(data, det, mx) {
   if (sType==='counter' && hSweep && hImb && !hRet) red.push('Контртрендовый: нет возврата при снятии + тест имба');
   if (mixed && !hImb)                             red.push('Mixed MACD при отсутствии теста имбаланса');
 
+  // не сводить обратно в sc: иначе один и тот же сетап снова начнёт скакать
+  // между "рабочий" и "не брать" от чтения MACD (было 12→5 на реальном кейсе)
+  const scFootprint = sc;
+
   // ── Блок 5 — MACD ─────────────────────────────────────────────
+  let macdAgrees = null; // совпадает ли старший MACD-контекст с направлением сделки
   if (sType === 'counter') {
     const old  = dir==='short' ? 'long' : 'short';
     const aOld = _mvpAllTf(m, old);
     const sOld = m.h4===old && m.d===old;
     const jAg  = m.m15 && m.h1 && m.m15!==old && m.h1!==old;
+    macdAgrees = sOld;
     if (sOld && hImb)                   { sc+=2; det2.push('+2 старшие MACD по старому + тест имба'); }
     if (aOld && hSweep && hImb && hRet) { sc+=3; det2.push('+3 все MACD по старому + полная связка'); }
     if (jAg && (hSweep || hImb))        { sc+=1; det2.push('+1 M15/H1 против старого + фактор');     }
@@ -207,14 +218,23 @@ function computeMvpScore(data, det, mx) {
     const m15h1Ag   = m.m15===opp && m.h1===opp;
     const m15h1h2Ag = m.m15===opp && m.h1===opp && m.h2===opp;
     const h4dWith   = m.h4===dir  || m.d===dir;
+    macdAgrees = h4dWith;
     if (m15h1Ag && (hSweep||hImb) && h4dWith)  { sc+=3; det2.push('+3 M15/H1 против + фактор + H4/D в сторону'); }
     if (m15h1h2Ag && hImb && h4dWith)           { sc+=3; det2.push('+3 M15/H1/H2 против + имба + H4/D');          }
     if (h4dWith)                                { sc+=1; det2.push('+1 H4 или D MACD в сторону сделки');           }
   }
 
+  // Несовпадение MACD со старшим контекстом — полноценный красный флаг
+  // (влияет на счётчик "2+ красных флага" и на пометку ОСТОРОЖНО), а не только текст.
+  if (macdAgrees === false) {
+    red.push(sType === 'trend'
+      ? 'Н4/Д MACD против направления — старший тренд ещё не развернулся в твою сторону, риск отката выше'
+      : 'Старший тренд на Н4/Д уже развернулся — контекст для контртренда больше не поддерживает, вероятен не откат, а продолжение');
+  }
+
   // ── Вердикт ───────────────────────────────────────────────────
   const hasStop = stop.length > 0;
-  let verdict = hasStop || sc < 6 ? 'НЕ БРАТЬ'
+  let verdict = hasStop || scFootprint < 6 ? 'НЕ БРАТЬ'
     : sc >= 16 ? 'СИЛЬНЫЙ СЕТАП'
     : sc >= 12 ? 'РАБОЧИЙ СЕТАП'
     : sc >= 9  ? 'УСЛОВНО РАБОЧИЙ СЕТАП'
@@ -222,7 +242,7 @@ function computeMvpScore(data, det, mx) {
   if (!hasStop && red.length >= 2) verdict += ' · ОСТОРОЖНО';
 
   const golden  = _mvpGolden({ score:sc, hasStop, hasSweep:hSweep, hasImb:hImb, hasReturn:hRet, direction:dir, setupType:sType, oiRange, oiType, imbalance:imb, m });
-  const summary = _mvpSummaryText({ score:sc, hasStop, stopReasons:stop, redFlags:red, verdict, hasSweep:hSweep, hasImb:hImb, hasOb:hOb, hasReturn:hRet, setupType:sType, sweep, imbalance:imb, ob, distance:dist, oiRange, oiType, mixed });
+  const summary = _mvpSummaryText({ score:sc, hasStop, stopReasons:stop, redFlags:red, verdict, hasSweep:hSweep, hasImb:hImb, hasOb:hOb, hasReturn:hRet, setupType:sType, sweep, imbalance:imb, ob, distance:dist, oiRange, oiType, mixed, macdAgrees });
 
   return { score:sc, hasStop, stopReasons:stop, redFlags:red, verdict, details:det2, summary, golden, setupType:sType, oiRange, oiType, distance:dist, netOi };
 }
