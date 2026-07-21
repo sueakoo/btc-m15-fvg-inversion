@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1784558444">
+  <link rel="stylesheet" href="css/style.css?v=1784593038">
 </head>
 <body>
 <div class="app">
@@ -203,6 +203,14 @@
       </select>
     </div>
     <div class="modal-field">
+      <label>Расхождение теста с реальностью</label>
+      <select id="saveTestMismatch">
+        <option value="">— выберите —</option>
+        <option value="да">Да</option>
+        <option value="нет">Нет</option>
+      </select>
+    </div>
+    <div class="modal-field">
       <label>Цена теста (фактическая)</label>
       <input type="text" id="saveActualTestPrice" placeholder="необязательно">
     </div>
@@ -229,11 +237,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1784558444"></script>
-<script src="js/detection.js?v=1784558444"></script>
-<script src="js/metrics.js?v=1784558444"></script>
-<script src="js/scoring.js?v=1784558444"></script>
-<script src="js/scoring_mvp.js?v=1784558444"></script>
+<script src="js/parser.js?v=1784593038"></script>
+<script src="js/detection.js?v=1784593038"></script>
+<script src="js/metrics.js?v=1784593038"></script>
+<script src="js/scoring.js?v=1784593038"></script>
+<script src="js/scoring_mvp.js?v=1784593038"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -609,6 +617,7 @@ function openSaveModal() {
   document.getElementById('saveRRRow').style.display = 'none';
   document.getElementById('saveSeniorCtx').value = '';
   document.getElementById('saveTestDepth').value = '';
+  document.getElementById('saveTestMismatch').value = '';
   document.getElementById('saveActualTestPrice').value = '';
   document.getElementById('saveNotes').value = '';
   document.getElementById('saveModal').classList.add('visible');
@@ -628,6 +637,7 @@ function confirmSave() {
   const rr              = document.getElementById('saveRR').value.trim();
   const seniorCtx       = document.getElementById('saveSeniorCtx').value;
   const testDepth       = document.getElementById('saveTestDepth').value;
+  const testMismatch    = document.getElementById('saveTestMismatch').value;
   const actualTestPrice = document.getElementById('saveActualTestPrice').value.trim();
   const notes           = document.getElementById('saveNotes').value.trim();
   if (!outcome || !testDepth) { alert('Укажите исход и глубину теста'); return; }
@@ -640,6 +650,7 @@ function confirmSave() {
     rr: outcome === 'тейк' ? (rr || null) : null,
     senior_context: seniorCtx || null,
     actual_test: testDepth,
+    test_mismatch: testMismatch || null,
     notes: notes || null,
     // Идентификация
     direction: det.direction,
