@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СМС — сбор тестового материала</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  .app { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+  .sub { font-size: 12px; color: #555; margin-bottom: 20px; }
+
+  .card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 5px;
+  }
+
+  textarea, select, input[type=number], input[type=text] {
+    width: 100%;
+    background: #0f0f0f;
+    border: 1px solid #262626;
+    border-radius: 6px;
+    color: #d8d8d8;
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  textarea:focus, select:focus, input:focus { border-color: #444; }
+  textarea::placeholder, input::placeholder { color: #333; }
+
+  #candles {
+    height: 220px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+
+  #takeFields, #stopFields { display: none; }
+
+  .btn {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-save { background: #1d6f42; color: #fff; margin-bottom: 10px; }
+  .btn-save:hover { background: #238551; }
+  .btn-save:active { background: #165a33; }
+
+  .btn-export { background: #1a2f4a; color: #cfe0f5; }
+  .btn-export:hover { background: #223e60; }
+
+  .tagrow { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .tagrow:last-child { margin-bottom: 0; }
+  .tagrow.none-row { padding-top: 8px; margin-top: 4px; border-top: 1px solid #1e1e1e; }
+  .tagrow .chk input:disabled { cursor: not-allowed; }
+  .tagrow select:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tagrow .chk {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #ccc; text-transform: none;
+    font-weight: 400; letter-spacing: normal;
+    flex: 1; cursor: pointer; margin-bottom: 0;
+  }
+  .tagrow .chk input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: #1d6f42; }
+  .tagrow select { flex: 1; }
+
+  .error {
+    background: #1e1010;
+    border: 1px solid #4a1a1a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #e0a0a0;
+    font-size: 12px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .ok-msg {
+    background: #10201a;
+    border: 1px solid #1a4a35;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #8fd6b5;
+    font-size: 12px;
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .list-header h2 { margin-bottom: 0; }
+  .count { font-size: 12px; color: #888; }
+
+  .setup-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .setup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 12px;
+    color: #aaa;
+    gap: 10px;
+  }
+  .setup-item .info { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .setup-item .dir-long  { color: #6fbf8b; }
+  .setup-item .dir-short { color: #d18a8a; }
+  .setup-item .res-take  { color: #6fbf8b; }
+  .setup-item .res-stop  { color: #d18a8a; }
+  .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .mini-btn {
+    background: #1a1a1a; border: 1px solid #262626; border-radius: 4px;
+    color: #999; font-size: 12px; padding: 3px 7px; cursor: pointer;
+  }
+  .mini-btn:hover { background: #222; color: #ccc; }
+  .mini-btn-del:hover { background: #3a1a1a; color: #e0a0a0; }
+  .empty-hint { font-size: 12px; color: #444; padding: 8px 0; }
+
+  textarea#comment { height: 70px; resize: vertical; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>СМС — сбор тестового материала</h1>
+  <div class="sub">Хай-1 → свеча пробоя Лой-1. Без ретеста. Теги + свечи → JSON.</div>
+
+  <div id="errorBox" class="error"></div>
+  <div id="okBox" class="ok-msg"></div>
+
+  <div class="card">
+    <h2>Свечи (Хай-1 → пробой Лой-1)</h2>
+    <textarea id="candles" placeholder="ts: ...&#10;exchange: Binance&#10;..."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>Структура</h2>
+    <div class="row">
+      <div class="field">
+        <label>Направление сетапа</label>
+        <select id="direction">
+          <option value="">— выбери —</option>
+          <option value="long">LONG</option>
+          <option value="short">SHORT</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Тренд</label>
+        <select id="trend">
+          <option value="">— выбери —</option>
+          <option value="long">LONG</option>
+          <option value="short">SHORT</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Хай-1 — что сделал (можно несколько сразу)</label>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="h1_sweep_chk"> Снятие</label>
+        <select id="h1_sweep_tf">
+          <option value="">ТФ</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="h1_imbalance_chk"> Тест имба</label>
+        <select id="h1_imbalance_tf">
+          <option value="">ТФ</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="h1_ob_chk"> Тест ОВ</label>
+        <select id="h1_ob_tf">
+          <option value="">ТФ</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+      <div class="tagrow none-row">
+        <label class="chk"><input type="checkbox" id="h1_none_chk" onchange="onH1NoneChange()"> Без старшего контекста</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Лой-1 — что сделал (можно несколько сразу)</label>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="l1_sweep_chk"> Снятие</label>
+        <select id="l1_sweep_tf">
+          <option value="">ТФ</option>
+          <option value="m5">M5</option>
+          <option value="m15">M15</option>
+          <option value="h1">H1</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="l1_imbalance_chk"> Тест имба</label>
+        <select id="l1_imbalance_tf">
+          <option value="">ТФ</option>
+          <option value="m5">M5</option>
+          <option value="m15">M15</option>
+          <option value="h1">H1</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+      <div class="tagrow">
+        <label class="chk"><input type="checkbox" id="l1_ob_chk"> Тест ОВ</label>
+        <select id="l1_ob_tf">
+          <option value="">ТФ</option>
+          <option value="m5">M5</option>
+          <option value="m15">M15</option>
+          <option value="h1">H1</option>
+          <option value="h4">H4</option>
+          <option value="d">Д</option>
+          <option value="w">Неделя</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Тип слома</label>
+      <select id="breakType">
+        <option value="">— выбери —</option>
+        <option value="micro">Микро-слом</option>
+        <option value="standard">Стандартный</option>
+        <option value="impulse">Импульсный</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Результат</h2>
+    <div class="field">
+      <label>Результат</label>
+      <select id="result">
+        <option value="">— выбери —</option>
+        <option value="take">Тейк</option>
+        <option value="stop">Стоп</option>
+      </select>
+    </div>
+
+    <div id="takeFields">
+      <div class="row">
+        <div class="field">
+          <label>Р:Р</label>
+          <input type="number" step="0.01" id="rr" placeholder="напр. 2.5">
+        </div>
+        <div class="field">
+          <label>Откат</label>
+          <select id="retrace">
+            <option value="">— выбери —</option>
+            <option value="none">Без отката</option>
+            <option value="shallow">Мелкий</option>
+            <option value="medium">Средний</option>
+            <option value="deep">Глубокий</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Цена отката</label>
+        <input type="number" step="any" id="retracePrice" placeholder="напр. 63820">
+      </div>
+    </div>
+
+    <div id="stopFields">
+      <div class="field">
+        <label>Тип инвалидации</label>
+        <select id="invalidationType">
+          <option value="">— выбери —</option>
+          <option value="structure">Сломанная структура</option>
+          <option value="main_high">Основная вершина</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Комментарии</h2>
+    <textarea id="comment" placeholder="Свободный текст — что угодно, что заметил глазом"></textarea>
+  </div>
+
+  <button class="btn btn-save" onclick="saveSetup()">Сохранить сетап</button>
+  <button class="btn btn-export" onclick="exportAll()">Скачать всё</button>
+
+  <div class="card" style="margin-top:14px">
+    <div class="list-header">
+      <h2>Сохранённые сетапы</h2>
+      <span class="count" id="countLabel">0</span>
+    </div>
+    <div id="setupList" class="setup-list"></div>
+  </div>
+</div>
+
+<script src="js/parser.js"></script>
+<script src="sms-log.js"></script>
+</body>
+</html>
