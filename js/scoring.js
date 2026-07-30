@@ -1009,7 +1009,8 @@ function _buildConclusion(b, det, mx, sc) {
   if (b.block6.flag === 'high_tail_risk')               risks.push('кульминационные хвосты — риск выноса');
   if (b.block9.score <= 7)                              risks.push('старший таймфрейм не подтверждает');
   if (['no_position', 'empty'].includes(scenario))      risks.push('механика захвата не работает');
-  if (sc.verdict === 'Стандартная инверсия')            risks.push('статистика бектеста: 42% отработки — торговать только при сильном стечении факторов');
+  // Процент отработки называется один раз — в _PROB (36% по бектесту). Здесь только требование к входу.
+  if (sc.verdict === 'Стандартная инверсия')            risks.push('торговать только при сильном стечении факторов');
   if (b.block4.score <= 6 && b.total >= 76)             risks.push('механика захвата слабая — вердикт понижен с «Сильный» до «Рабочий»');
 
   const riskStr = risks.length === 0
