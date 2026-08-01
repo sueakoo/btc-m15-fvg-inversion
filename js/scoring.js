@@ -240,7 +240,10 @@ function _scoreBlock4(mx, det) {
   const doiPct    = inv.doi_pct    ?? 0;
   const oiGrowing = doiPct > 0;
 
-  if (cvdSign == null) {
+  // «Нет данных» и «поток пустой» — разные события.
+  // Раньше отсутствующий cvd_pct подставлялся нулём и уезжал в «Пустое движение»,
+  // то есть отсутствие данных выдавалось за отсутствие потока.
+  if (cvdSign == null || inv.cvd_pct == null) {
     const score = oiGrowing ? 5 : 3;
     return {
       score,
@@ -255,8 +258,10 @@ function _scoreBlock4(mx, det) {
   const cvdAgainst = direction === 'long'
     ? (cvdSign === -1 || cvdSign === 'negative')
     : (cvdSign ===  1 || cvdSign === 'positive');
-  const cvdStrong  = !cvdSmall && Math.abs(cvdPct) >= 0.30;
-  const cvdNeutral = cvdSmall || Math.abs(cvdPct) < 0.10;
+  // cvd_small = |cvd_pct| < 1% (порог X-RAY). Собственные пороги 0.30 / 0.10 были
+  // избыточны: при снятом флаге |cvd_pct| и так ≥ 1%, проверка всегда истинна.
+  const cvdStrong  = !cvdSmall;
+  const cvdNeutral = cvdSmall;
 
   // Инверсия через сопротивление: сильный CVD в сторону + слабое тело
   // Проверяем ДО "Рыночной инициативы" — иначе та перехватывает все cvdWithDir+oiGrowing
@@ -308,15 +313,11 @@ function _scoreBlock4(mx, det) {
     };
   }
 
-  // Пустое движение: нет CVD, нет OI
-  if (Math.abs(cvdPct) < 0.10 && !oiGrowing) {
-    return {
-      score:    2,
-      label:    'Пустое движение',
-      comment:  'Имбаланс пройден без объёмного и позиционного участия. Ни CVD, ни OI не подтвердили.',
-      scenario: 'empty',
-    };
-  }
+  // Сценарий «Пустое движение» удалён: его условие |cvd_pct| < 0.10 при живых
+  // данных не выполняется никогда (реальный CVD от 1.5% и выше), а срабатывало
+  // оно только на пропущенных данных — это теперь ловится веткой «нет данных».
+  // Случай «нет потока и нет набора OI» полностью покрыт fallback ниже (4 балла)
+  // и стоп-флагом «механика захвата провалена».
 
   // Движение без позиции (fallback)
   const score = cvdStrong ? 6 : oiGrowing ? 5 : 4;
@@ -642,6 +643,15 @@ function _scoreBlock9(mx, direction) {
 // ── Стоп-флаги ────────────────────────────────────────────────
 function _stopFlags(b, mx, det) {
   const flags = [];
+
+  // Механика захвата провалена: цена прошла зону, но позицию под этим никто не набирал.
+  // На выборке из 18 сетапов в эту группу попали три, и все три — стопы;
+  // ни один тейк не опускался ниже 11 баллов по блоку 4.
+  // Сценарий no_cvd исключён: там низкий балл означает не провал механики,
+  // а отсутствие данных — это нейтральная оценка, а не основание для вето.
+  if (b.block4.score <= 6 && b.block4.scenario !== 'no_cvd') {
+    flags.push('Механика захвата провалена: движение прошло без набора позиции');
+  }
 
   if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.h1_doi_pct ?? 0) < 0.10) {
     flags.push('Пустая инверсия: нет OI, нет объёма, H1 не подтверждает');
