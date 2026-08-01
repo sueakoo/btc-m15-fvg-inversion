@@ -107,16 +107,108 @@ function computeMetrics(m15, h1, det) {
     return t <= tsEnd && new Date(t.getTime() + 3_600_000) > tsStart;
   }) : [];
 
+  // ── Очистка пивотного часа от снятия ─────────────────────
+  // Pivot на инверсии — это всегда снятие ликвидности, а снятие всегда даёт
+  // ликвидации. Часовая свеча, внутри которой лежит Pivot, захватывает их
+  // целиком, и отличить ликвидации сетапа от ликвидаций снятия становится
+  // невозможно. Поэтому вклад пивотного часа в окно считается отдельно.
+  //
+  // Час строго равен сумме своих M15-свечей (проверено на данных), отсюда
+  // два пути получить его вклад:
+  //   A. прямое сложение M15-свечей часа, попавших в окно — ОСНОВНОЙ:
+  //      не зависит от округления H1 и от полноты вставки слева;
+  //   B. вычитание: час минус M15-свечи до начала окна — ЗАПАСНОЙ:
+  //      наследует ошибку округления H1, поэтому только когда A недоступен,
+  //      и только при доказанной полноте свечей до окна.
+  // Доступны оба — считаем оба и сверяем: расхождение больше 2% значит,
+  // что данные не сходятся между собой, и об этом надо сказать.
+  const _HOUR = 3_600_000, _M15 = 900_000;
+  const pivotTs = _parseTs(m15[det.pivot.idx]?.ts);
+
+  // Свеча считается пригодной, только если есть обе стороны ликвидаций и объём.
+  // Пустая сторона — это НЕ ноль: сверка с H1 показала, что за пропуском
+  // скрываются реальные суммы.
+  function _liqOf(c) {
+    if (typeof c.liq_long !== 'number' || typeof c.liq_short !== 'number'
+        || typeof c.volume !== 'number') return null;
+    return { long: c.liq_long, short: Math.abs(c.liq_short), vol: c.volume };
+  }
+  function _sumLiq(list) {
+    let L = 0, S = 0, V = 0;
+    for (const c of list) {
+      const q = _liqOf(c);
+      if (!q) return null;
+      L += q.long; S += q.short; V += q.vol;
+    }
+    return { long: L, short: S, vol: V };
+  }
+
+  let h1_liq_clean    = true;
+  let h1_liq_method   = null;   // 'direct' | 'subtract' | null
+  let h1_liq_mismatch = false;
+  let pivotHourAdj    = null;   // вклад пивотного часа в окно
+
+  const pivotHourCandle = (pivotTs && h1Window.length)
+    ? h1Window.find(c => {
+        const t = _parseTs(c.ts);
+        return t && t.getTime() <= pivotTs.getTime() && pivotTs.getTime() < t.getTime() + _HOUR;
+      }) || null
+    : null;
+
+  if (pivotHourCandle) {
+    const t0     = _parseTs(pivotHourCandle.ts).getTime();
+    const pivMs  = pivotTs.getTime();
+    const inHour = m15.filter(c => {
+      const x = _parseTs(c.ts);
+      return x && x.getTime() >= t0 && x.getTime() < t0 + _HOUR;
+    });
+    const before = inHour.filter(c => _parseTs(c.ts).getTime() <= pivMs);
+    const inside = inHour.filter(c => _parseTs(c.ts).getTime() >  pivMs);
+
+    // A — прямое сложение
+    const direct = inside.length ? _sumLiq(inside) : null;
+
+    // B — вычитание, только при полном наборе свечей до окна
+    let sub = null;
+    const expectedBefore = Math.round((pivMs - t0) / _M15) + 1;
+    if (before.length === expectedBefore) {
+      const b = _sumLiq(before);
+      const h = _liqOf(pivotHourCandle);
+      if (b && h) sub = { long: h.long - b.long, short: h.short - b.short, vol: h.vol - b.vol };
+    }
+
+    if (direct && sub) {
+      const base = (_liqOf(pivotHourCandle)?.long ?? 0) + (_liqOf(pivotHourCandle)?.short ?? 0);
+      const diff = Math.abs((direct.long + direct.short) - (sub.long + sub.short));
+      if (base > 0 && diff > base * 0.02) h1_liq_mismatch = true;
+      pivotHourAdj = direct; h1_liq_method = 'direct';
+    } else if (direct) {
+      pivotHourAdj = direct; h1_liq_method = 'direct';
+    } else if (sub) {
+      pivotHourAdj = sub;    h1_liq_method = 'subtract';
+    } else {
+      h1_liq_clean = false;
+    }
+  }
+
   let h1DoiSum = 0, h1LiqLong = 0, h1LiqShortAbs = 0, h1Volume = 0;
   for (const c of h1Window) {
-    h1DoiSum      += c.doi_pct   ?? 0;
+    // Ось OI не чистим: doi_pct — процент, а не сумма, строго разложить нельзя.
+    h1DoiSum += c.doi_pct ?? 0;
+    if (c === pivotHourCandle) continue;   // пивотный час учитывается отдельно
     h1LiqLong     += c.liq_long  ?? 0;
     h1LiqShortAbs += Math.abs(c.liq_short ?? 0);
     h1Volume      += c.volume    ?? 0;
   }
-  const h1TotalLiq    = h1LiqLong + h1LiqShortAbs;
-  const h1_liqshare   = h1Volume > 0    ? h1TotalLiq / h1Volume * 100         : null;
-  const h1_limb       = h1TotalLiq > 0  ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
+  if (pivotHourAdj) {
+    h1LiqLong     += Math.max(pivotHourAdj.long,  0);
+    h1LiqShortAbs += Math.max(pivotHourAdj.short, 0);
+    h1Volume      += Math.max(pivotHourAdj.vol,   0);
+  }
+
+  const h1TotalLiq  = h1LiqLong + h1LiqShortAbs;
+  const h1_liqshare = (h1_liq_clean && h1Volume   > 0) ? h1TotalLiq / h1Volume * 100 : null;
+  const h1_limb     = (h1_liq_clean && h1TotalLiq > 0) ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
 
   const _m15CvdSum  = oiCandles.reduce((s, c) => s + (c.cvd_pct ?? 0), 0);
   const m15_cvd_sign = _m15CvdSum > 0 ? 1 : _m15CvdSum < 0 ? -1 : 0;
@@ -238,9 +330,15 @@ function computeMetrics(m15, h1, det) {
     h1_doi_pct:      _r(h1DoiSum,   3),
     h1_liqshare_pct: _r(h1_liqshare, 3),
     h1_limb_pct:     _r(h1_limb,    1),
-    // Сырые суммы ликвидаций по H1-окну — сохраняются в сетап для калибровки
-    h1_liq_long:     Math.round(h1LiqLong),
-    h1_liq_short:    Math.round(h1LiqShortAbs),
+    // Сырые суммы ликвидаций по H1-окну (уже очищенные от пивотного часа).
+    // При неудавшейся очистке — null, а не ноль: «посчитать не смогли»
+    // не должно выглядеть как «ликвидаций не было».
+    h1_liq_long:     h1_liq_clean ? Math.round(h1LiqLong)     : null,
+    h1_liq_short:    h1_liq_clean ? Math.round(h1LiqShortAbs) : null,
+    // Состояние очистки пивотного часа
+    h1_liq_clean,       // удалось ли очистить окно от снятия
+    h1_liq_method,      // 'direct' | 'subtract' | null
+    h1_liq_mismatch,    // два пути дали расхождение больше 2%
     m15_cvd_sign,
 
     // ── Сырые окна (для блоков 4, 5) ────────

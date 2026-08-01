@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1785591536">
+  <link rel="stylesheet" href="css/style.css?v=1785603360">
 </head>
 <body>
 <div class="app">
@@ -237,11 +237,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1785591536"></script>
-<script src="js/detection.js?v=1785591536"></script>
-<script src="js/metrics.js?v=1785591536"></script>
-<script src="js/scoring.js?v=1785591536"></script>
-<script src="js/scoring_mvp.js?v=1785591536"></script>
+<script src="js/parser.js?v=1785603360"></script>
+<script src="js/detection.js?v=1785603360"></script>
+<script src="js/metrics.js?v=1785603360"></script>
+<script src="js/scoring.js?v=1785603360"></script>
+<script src="js/scoring_mvp.js?v=1785603360"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -698,6 +698,9 @@ function confirmSave() {
     doi_pct_inv:  mx.inv?.doi_pct  ?? null,
     h1_liq_long:  mx.h1_liq_long   ?? null,
     h1_liq_short: mx.h1_liq_short  ?? null,
+    h1_liq_clean:    mx.h1_liq_clean    ?? null,
+    h1_liq_method:   mx.h1_liq_method   ?? null,
+    h1_liq_mismatch: mx.h1_liq_mismatch ?? null,
     actual_test_price: actualTestPrice ? parseFloat(actualTestPrice) || actualTestPrice : null,
     no_test_prob: sc.noTestProb ?? null,
     // Расширенный анализ
