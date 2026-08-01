@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1785591302">
+  <link rel="stylesheet" href="css/style.css?v=1785591381">
 </head>
 <body>
 <div class="app">
@@ -237,11 +237,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1785591302"></script>
-<script src="js/detection.js?v=1785591302"></script>
-<script src="js/metrics.js?v=1785591302"></script>
-<script src="js/scoring.js?v=1785591302"></script>
-<script src="js/scoring_mvp.js?v=1785591302"></script>
+<script src="js/parser.js?v=1785591381"></script>
+<script src="js/detection.js?v=1785591381"></script>
+<script src="js/metrics.js?v=1785591381"></script>
+<script src="js/scoring.js?v=1785591381"></script>
+<script src="js/scoring_mvp.js?v=1785591381"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -692,6 +692,12 @@ function confirmSave() {
     exit_in_fvg: mx.exit_in_fvg ?? null,
     body_pct_inv: mx.inv?.body_pct ?? null,
     cvd_sign_inv: mx.inv?.cvd_sign ?? null,
+    // Поля для будущей калибровки порогов (блоки 4 и 9)
+    cvd_pct_inv:  mx.inv?.cvd_pct  ?? null,
+    clv_pct_inv:  mx.inv?.clv_pct  ?? null,
+    doi_pct_inv:  mx.inv?.doi_pct  ?? null,
+    h1_liq_long:  mx.h1_liq_long   ?? null,
+    h1_liq_short: mx.h1_liq_short  ?? null,
     actual_test_price: actualTestPrice ? parseFloat(actualTestPrice) || actualTestPrice : null,
     no_test_prob: sc.noTestProb ?? null,
     // Расширенный анализ

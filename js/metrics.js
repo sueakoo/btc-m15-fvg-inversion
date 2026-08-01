@@ -238,6 +238,9 @@ function computeMetrics(m15, h1, det) {
     h1_doi_pct:      _r(h1DoiSum,   3),
     h1_liqshare_pct: _r(h1_liqshare, 3),
     h1_limb_pct:     _r(h1_limb,    1),
+    // Сырые суммы ликвидаций по H1-окну — сохраняются в сетап для калибровки
+    h1_liq_long:     Math.round(h1LiqLong),
+    h1_liq_short:    Math.round(h1LiqShortAbs),
     m15_cvd_sign,
 
     // ── Сырые окна (для блоков 4, 5) ────────
