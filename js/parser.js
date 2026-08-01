@@ -51,6 +51,55 @@ function parseCandleBlock(block) {
 }
 
 /**
+ * Приводит поля выгрузки X-RAY к конвенции приложения.
+ * Вызывается сразу после разбора свечи — дальше по всему коду одна шкала.
+ *
+ * limb_pct — X-RAY считает (short − long)/сумма, то есть МИНУС = вынесло лонгов.
+ *            У нас плюс = вынесло лонгов → инвертируем знак.
+ * tilt_pct — в выгрузке лежит перекос «продавец относительно покупателя»
+ *            (колонка Tilt%), что противоречит имени поля. Считаем сами:
+ *            плюс = крупнее заходил покупатель.
+ *            Берём сырые объёмы и число сделок, а НЕ avg_trade_* — последние
+ *            округлены до 2 знаков и на мелких значениях схлопываются в ноль.
+ * oe       — в выгрузку идёт модуль (колонка oe_modul), сторона теряется.
+ *            Восстанавливаем со знаком: doi_pct / |Δ% цены|.
+ */
+function normalizeXrayFields(candle) {
+  // ── limb_pct: плюс = ликвидировались лонги ────────────────
+  if (typeof candle.limb_pct === 'number') {
+    candle.limb_pct = -candle.limb_pct;
+  }
+
+  // ── tilt_pct: плюс = средний ордер покупки крупнее ────────
+  let avgBuy = null, avgSell = null;
+  if (typeof candle.buy_volume === 'number' && typeof candle.buy_trades === 'number' && candle.buy_trades > 0) {
+    avgBuy = candle.buy_volume / candle.buy_trades;
+  } else if (typeof candle.avg_trade_buy === 'number') {
+    avgBuy = candle.avg_trade_buy;
+  }
+  if (typeof candle.sell_volume === 'number' && typeof candle.sell_trades === 'number' && candle.sell_trades > 0) {
+    avgSell = candle.sell_volume / candle.sell_trades;
+  } else if (typeof candle.avg_trade_sell === 'number') {
+    avgSell = candle.avg_trade_sell;
+  }
+  candle.tilt_pct = (avgBuy != null && avgSell != null && avgSell > 0)
+    ? +((avgBuy / avgSell - 1) * 100).toFixed(2)
+    : null;
+
+  // ── oe: знак сохраняется (плюс = OI набирался) ────────────
+  if (typeof candle.doi_pct === 'number'
+      && typeof candle.open === 'number' && candle.open !== 0
+      && typeof candle.close === 'number') {
+    const pricePct = Math.abs((candle.close - candle.open) / candle.open * 100);
+    candle.oe = pricePct > 0 ? +(candle.doi_pct / pricePct).toFixed(3) : null;
+  } else {
+    candle.oe = null;
+  }
+
+  return candle;
+}
+
+/**
  * Splits raw text into per-candle blocks.
  * Each new block starts when a line beginning with "ts:" is encountered.
  */
@@ -84,6 +133,7 @@ function parseCandles(text) {
     .replace(/\s*["“”]$/gm, '');
   return splitIntoBlocks(normalized)
     .map(parseCandleBlock)
+    .map(normalizeXrayFields)
     .filter(c => c.ts !== null && c.ts !== undefined);
 }
 
