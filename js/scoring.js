@@ -506,7 +506,13 @@ function _scoreBlock9(mx, direction) {
   let score, label, comment, stopFlag = false;
   let cvdExplicit = false;
 
-  if (liq < 2) {
+  // Полосы ликвидаций перенесены с 2 / 5 / 10% на 0.1 / 0.2 / 0.3%.
+  // Прежние границы были недостижимы: ликвидации — это сотые и десятые доли
+  // процента от оборота (в 18 сетапах максимум 0.555%), из-за чего девять
+  // сценариев матрицы не запускались ни разу.
+  // Новые границы взяты из калибровки самого X-RAY: 0.2% — предупреждение,
+  // 0.3% — сквиз (лист «пороги», liqshare warning/squeeze).
+  if (liq < 0.1) {
     if (doi >= 0.20) {
       if (_cvdWithDir(m15_cvd_sign, direction)) {
         score   = 18;
@@ -534,7 +540,7 @@ function _scoreBlock9(mx, direction) {
       score = 5; label = 'OI уходит, H1 не поддерживает';
       comment = 'OI на H1 снижался — старший таймфрейм не поддерживает инверсию.';
     }
-  } else if (liq < 5) {
+  } else if (liq < 0.2) {
     if (doi >= 0.20) {
       if (!hasLimb) {
         score = 11; label = 'Встряска + OI вошёл';
@@ -556,7 +562,7 @@ function _scoreBlock9(mx, direction) {
         comment = `${othPos} принудительно закрывались, нового OI нет — движение на закрытиях без подтверждения.`;
       }
     }
-  } else if (liq < 10) {
+  } else if (liq < 0.3) {
     if (doi >= 0.20) {
       if (!hasLimb) {
         score = 11; label = 'Значимые ликвидации + OI вошёл';
@@ -619,7 +625,7 @@ function _scoreBlock9(mx, direction) {
   }
 
   // Limb-заметка для liq < 2%: ликвидации минимальны, но данные есть — показываем
-  if (liq < 2 && hasLimb && !cvdExplicit) {
+  if (liq < 0.1 && hasLimb && !cvdExplicit) {
     const dominant = against ? ownAdj : othAdj;
     comment += ` Ликвидаций минимум — незначительный перевес на стороне ${dominant} позиций.`;
   }
@@ -627,7 +633,10 @@ function _scoreBlock9(mx, direction) {
   // CVD уточнение ±2 при пограничных значениях
   if (!cvdExplicit && m15_cvd_sign !== 0 && score > 0 && score < 18) {
     const borderDoi = doi >= 0.17 && doi < 0.25;
-    const borderLiq = (liq >= 1.5 && liq < 2.5) || (liq >= 4.5 && liq < 5.5) || (liq >= 9.5 && liq < 10.5);
+    // Пограничные зоны сдвинуты вместе с полосами: ±0.025 вокруг каждой границы.
+    const borderLiq = (liq >= 0.075 && liq < 0.125)
+                   || (liq >= 0.175 && liq < 0.225)
+                   || (liq >= 0.275 && liq < 0.325);
     if (borderDoi || borderLiq) {
       const cvdBonus = _cvdWithDir(m15_cvd_sign, direction) ? 2 : -2;
       score = Math.max(0, Math.min(18, score + cvdBonus));
