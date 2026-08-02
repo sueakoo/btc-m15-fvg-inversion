@@ -210,6 +210,76 @@ function computeMetrics(m15, h1, det) {
   const h1_liqshare = (h1_liq_clean && h1Volume   > 0) ? h1TotalLiq / h1Volume * 100 : null;
   const h1_limb     = (h1_liq_clean && h1TotalLiq > 0) ? (h1LiqLong - h1LiqShortAbs) / h1TotalLiq * 100 : null;
 
+  // ── Ликвидации на свече инверсии — основная ось блока 9 ──
+  // Свеча инверсии = момент пересечения зоны. Определена структурно, без единого
+  // порога и без привязки к расстояниям. Ликвидации снятия в неё попасть не могут
+  // физически: снятие произошло на Pivot, а инверсия — это выход за границу FVG.
+  //
+  // Пропуск в данных закрывается сверкой с часом: час строго равен сумме своих
+  // M15-свечей. Если известны все остальные свечи часа — недостающее вычисляется
+  // точно. Если неизвестны несколько — знаем только верхнюю границу.
+  // Пропуск это НЕ ноль: на реальных данных в 6 часах из 17 за прочерками
+  // прятались суммы до 195 тысяч.
+  const _num = v => typeof v === 'number' && isFinite(v);
+
+  let inv_liq_long   = _num(invCandle.liq_long)  ? invCandle.liq_long            : null;
+  let inv_liq_short  = _num(invCandle.liq_short) ? Math.abs(invCandle.liq_short) : null;
+  let inv_liq_method = (inv_liq_long != null && inv_liq_short != null) ? 'direct' : null;
+  let boundLong = null, boundShort = null;
+
+  const _invTs = _parseTs(invCandle.ts);
+  if ((inv_liq_long == null || inv_liq_short == null) && _invTs) {
+    const t0 = Math.floor(_invTs.getTime() / 3_600_000) * 3_600_000;
+    const hourC = h1.find(c => {
+      const x = _parseTs(c.ts);
+      return x && x.getTime() === t0;
+    });
+    if (hourC) {
+      const others = m15.filter(c => {
+        const x = _parseTs(c.ts);
+        return x && c !== invCandle && x.getTime() >= t0 && x.getTime() < t0 + 3_600_000;
+      });
+      const resolve = (side, hourVal) => {
+        // Час пуст по этой стороне — значит за весь час ликвидаций не было,
+        // и на нашей свече их тоже ноль. Это не «нет данных», а факт:
+        // фид отдаёт даже 63 доллара, так что пустой час = пустой час.
+        const hourTotal = _num(hourVal) ? Math.abs(hourVal) : 0;
+        if (hourTotal === 0) return { value: 0, bound: null };
+
+        let sum = 0, allKnown = true;
+        for (const c of others) {
+          if (_num(c[side])) sum += Math.abs(c[side]);
+          else allKnown = false;
+        }
+        const resid = Math.max(hourTotal - sum, 0);
+        return allKnown ? { value: resid, bound: null } : { value: null, bound: resid };
+      };
+      if (inv_liq_long == null) {
+        const r = resolve('liq_long', hourC.liq_long);
+        if (r.value != null) { inv_liq_long = r.value; inv_liq_method = 'recovered'; }
+        else boundLong = r.bound;
+      }
+      if (inv_liq_short == null) {
+        const r = resolve('liq_short', hourC.liq_short);
+        if (r.value != null) { inv_liq_short = r.value; inv_liq_method = inv_liq_method || 'recovered'; }
+        else boundShort = r.bound;
+      }
+    }
+  }
+
+  const _invVol   = _num(invCandle.volume) ? invCandle.volume : null;
+  const inv_liq_known = inv_liq_long != null && inv_liq_short != null && _invVol > 0;
+  const _invTotal = inv_liq_known ? inv_liq_long + inv_liq_short : null;
+
+  const inv_liqshare_pct = inv_liq_known ? _invTotal / _invVol * 100 : null;
+  const inv_limb_pct     = (inv_liq_known && _invTotal > 0)
+    ? (inv_liq_long - inv_liq_short) / _invTotal * 100 : null;
+
+  // Верхняя граница, когда точное значение недоступно
+  const inv_liq_max_pct = (!inv_liq_known && _invVol > 0)
+    ? ((inv_liq_long ?? boundLong ?? 0) + (inv_liq_short ?? boundShort ?? 0)) / _invVol * 100
+    : null;
+
   const _m15CvdSum  = oiCandles.reduce((s, c) => s + (c.cvd_pct ?? 0), 0);
   const m15_cvd_sign = _m15CvdSum > 0 ? 1 : _m15CvdSum < 0 ? -1 : 0;
 
@@ -339,6 +409,16 @@ function computeMetrics(m15, h1, det) {
     h1_liq_clean,       // удалось ли очистить окно от снятия
     h1_liq_method,      // 'direct' | 'subtract' | null
     h1_liq_mismatch,    // два пути дали расхождение больше 2%
+
+    // ── Ликвидации на свече инверсии — основная ось блока 9 ──
+    inv_liq_long:     inv_liq_long  != null ? Math.round(inv_liq_long)  : null,
+    inv_liq_short:    inv_liq_short != null ? Math.round(inv_liq_short) : null,
+    inv_liqshare_pct: _r(inv_liqshare_pct, 4),
+    inv_limb_pct:     _r(inv_limb_pct,     1),
+    inv_liq_known,                              // известны ли обе стороны
+    inv_liq_method,                             // 'direct' | 'recovered' | null
+    inv_liq_max_pct:  _r(inv_liq_max_pct,  4),  // верхняя граница, если неизвестно
+
     m15_cvd_sign,
 
     // ── Сырые окна (для блоков 4, 5) ────────

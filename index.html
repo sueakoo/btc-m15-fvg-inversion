@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BTC M15 FVG Inversion</title>
-  <link rel="stylesheet" href="css/style.css?v=1785603360">
+  <link rel="stylesheet" href="css/style.css?v=1785645439">
 </head>
 <body>
 <div class="app">
@@ -237,11 +237,11 @@
   </div>
 </div>
 
-<script src="js/parser.js?v=1785603360"></script>
-<script src="js/detection.js?v=1785603360"></script>
-<script src="js/metrics.js?v=1785603360"></script>
-<script src="js/scoring.js?v=1785603360"></script>
-<script src="js/scoring_mvp.js?v=1785603360"></script>
+<script src="js/parser.js?v=1785645439"></script>
+<script src="js/detection.js?v=1785645439"></script>
+<script src="js/metrics.js?v=1785645439"></script>
+<script src="js/scoring.js?v=1785645439"></script>
+<script src="js/scoring_mvp.js?v=1785645439"></script>
 <script>
 
 // ── Последний анализ (для сохранения) ────────────────────────
@@ -313,7 +313,7 @@ function chipColor(label, mx, det) {
   const r = (mx.retention_ratio ?? 1) * 100;
   const s = det.skew_depth ?? 0;
   const h = mx.h1_doi_pct ?? 0;
-  const l = mx.h1_liqshare_pct ?? 0;
+  const l = mx.inv_liqshare_pct ?? 0;
   if (label === 'gross OI')    return g < 0.20 ? '#e05555' : null;
   if (label === 'net OI')      return n < 0.10 ? '#e05555' : n < 0.20 ? '#d4a017' : null;
   if (label === 'retention')   return r < 15   ? '#e05555' : r < 40   ? '#d4a017' : null;
@@ -323,22 +323,28 @@ function chipColor(label, mx, det) {
     if (z === 'weak') return '#d4a017';
     return null;
   }
-  if (label === 'H1 OI')       return h < 0    ? '#e05555' : h < 0.10  ? '#d4a017' : null;
-  if (label === 'H1 liqshare') return l >= 10  ? '#e05555' : l >= 5    ? '#d4a017' : null;
+  if (label === 'OI за окно')  return n < 0    ? '#e05555' : n < 0.20  ? '#d4a017' : null;
+  // пороги по калибровке X-RAY: 0.3% — сквиз, 0.2% — предупреждение
+  if (label === 'ликвидации')  return l >= 0.3 ? '#e05555' : l >= 0.2 ? '#d4a017' : null;
   return null;
 }
 
-function h1LimbHtml(limbPct) {
-  if (limbPct == null) return '—';
+function h1LimbHtml(limbPct, direction) {
+  if (limbPct == null) return '<span style="color:#777">не определены</span>';
   const abs        = Math.abs(limbPct).toFixed(0);
   const longShare  = ((1 + limbPct / 100) / 2 * 100).toFixed(1);
   const shortShare = ((1 - limbPct / 100) / 2 * 100).toFixed(1);
   const G = '#3fb950', R = '#e05555', N = '#555';
+  // Нижняя строка — просто опознание сторон: лонги зелёным, шорты красным.
   const sub = `<br><span style="font-size:10px;color:${N}">Из 100% ликвидаций: </span><span style="font-size:10px;color:${G}">${longShare}% — лонгов</span><span style="font-size:10px;color:${N}">, </span><span style="font-size:10px;color:${R}">${shortShare}% — шортов</span>`;
   if (Math.abs(limbPct) < 5) return `<span style="color:${N}">поровну</span>${sub}`;
-  const C = limbPct > 0 ? G : R;
   const side = limbPct > 0 ? 'лонгов' : 'шортов';
-  return `<span style="color:${C}">перевес ликвидаций в сторону ${side} на ${abs}%</span>${sub}`;
+  // Цвет верхней строки — по смыслу для сделки, а не по знаку.
+  // Вынесло нашу сторону — предупреждение. Вынесло противоположную — топливо.
+  const against = direction === 'long' ? limbPct > 0 : limbPct < 0;
+  const C   = against ? R : G;
+  const tag = against ? ' — выбило нашу сторону' : ' — выбило противоположную сторону';
+  return `<span style="color:${C}">перевес ликвидаций в сторону ${side} на ${abs}%${tag}</span>${sub}`;
 }
 
 function h1CvdHtml(sign) {
@@ -453,7 +459,7 @@ function buildReport(sc, det, mx) {
     { key:'block5', name:'Re-Auction',       max:13 },
     { key:'block6', name:'Geometry',         max:8  },
     { key:'block8', name:'Skew',             max:7  },
-    { key:'block9', name:'H1 Snapshot',      max:18 },
+    { key:'block9', name:'Пересечение зоны', max:18 },
   ];
 
   const blocksHtml = BLOCKS.map(bl => {
@@ -500,8 +506,8 @@ function buildReport(sc, det, mx) {
     { label:'↓+FVG zone',  sub:'OI ниже точки инверсии',       value: pctStr((mx.share_below??0)+(mx.share_fvg??0)) },
     { label:'FVG vol',     sub:'объём внутри зоны',             value: pctStr(mx.fvg_volume_share)  },
     { label:'skew depth',  sub:'отрыв implied_price от цены инверсии', value: det.skew_depth != null ? det.skew_depth.toFixed(3) : '—', hint: skewHint(det.skew_depth, mx) },
-    { label:'H1 OI',       sub:'прирост позиций на H1',         value: mx.h1_doi_pct + '%'          },
-    { label:'H1 liqshare', sub:'доля ликвидаций от объёма H1', value: mx.h1_liqshare_pct != null ? mx.h1_liqshare_pct.toFixed(2) + '%' : '—' },
+    { label:'OI за окно',  sub:'прирост позиций от Pivot до инверсии', value: mx.net_oi + '%'      },
+    { label:'ликвидации',  sub:'доля от объёма свечи инверсии', value: mx.inv_liqshare_pct != null ? mx.inv_liqshare_pct.toFixed(3) + '%' : 'не определены' },
     { label:'длина хода',  sub:'свечей от пивота до инверсии', value: mx.oi_window_count + ' св.'  },
   ];
   const metricsHtml = metrics.map(m => {
@@ -539,18 +545,18 @@ function buildReport(sc, det, mx) {
     ['imb_range',     'глубина имбаланса',    det.fvg.imb_range_pct + '%'],
   ];
   const rowsAfter = [
-    ['H1 limb', 'сторона ликвидаций H1', h1LimbHtml(mx.h1_limb_pct)],
+    ['сторона ликвидаций', 'кого вынесло на свече инверсии', h1LimbHtml(mx.inv_limb_pct, det.direction)],
   ];
 
-  const _ls   = mx.h1_liqshare_pct ?? 0;
-  const _lmb  = mx.h1_limb_pct ?? 0;
+  const _ls   = mx.inv_liqshare_pct ?? 0;
+  const _lmb  = mx.inv_limb_pct ?? 0;
   const _labs = Math.abs(_lmb);
   const _lopp = det.direction === 'long' ? _lmb > 0 : _lmb < 0;
   let limbNote = '';
-  if (_lopp && _ls > 1 && _labs > 25) {
-    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#e05555">⚠ Значимые ликвидации против направления — H1 ликвидации перевешивают против сделки. Риск что OI рос за счёт противоположной стороны</div>`;
-  } else if (_lopp && _ls > 0.2 && _labs > 30) {
-    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#d4a017">⚠ Незначительный перевес ликвидаций против направления — в H1 окне противоположная сторона закрывалась активнее при росте OI</div>`;
+  if (_lopp && _ls >= 0.3 && _labs > 25) {
+    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#e05555">⚠ Сквиз против направления — на свече инверсии выбило нашу сторону. Риск, что движение шло за счёт противоположной стороны</div>`;
+  } else if (_lopp && _ls >= 0.2 && _labs > 30) {
+    limbNote = `<div class="block-disclaimer" style="margin:4px 0 2px;color:#d4a017">⚠ Заметный перевес ликвидаций против направления — на свече инверсии выбивало нашу сторону</div>`;
   }
 
   const crossComment = (mx.share_fvg ?? 0) >= 0.5 && (mx.ip_zone === 'strong' || mx.ip_zone === 'weak')
@@ -701,6 +707,12 @@ function confirmSave() {
     h1_liq_clean:    mx.h1_liq_clean    ?? null,
     h1_liq_method:   mx.h1_liq_method   ?? null,
     h1_liq_mismatch: mx.h1_liq_mismatch ?? null,
+    inv_liqshare_pct: mx.inv_liqshare_pct ?? null,
+    inv_limb_pct:     mx.inv_limb_pct     ?? null,
+    inv_liq_long:     mx.inv_liq_long     ?? null,
+    inv_liq_short:    mx.inv_liq_short    ?? null,
+    inv_liq_known:    mx.inv_liq_known    ?? null,
+    inv_liq_method:   mx.inv_liq_method   ?? null,
     actual_test_price: actualTestPrice ? parseFloat(actualTestPrice) || actualTestPrice : null,
     no_test_prob: sc.noTestProb ?? null,
     // Расширенный анализ

@@ -477,24 +477,28 @@ function _scoreBlock8(det, mx) {
   return { score, label, comment: _b8Comment(score, ipZone), stopFlags: [] };
 }
 
-// ── Блок 9 — H1 Snapshot (18 pts) ────────────────────────────
+// ── Блок 9 — Ликвидации и позиция при пересечении зоны (18 pts) ──
+//
+// Раньше блок назывался «H1 Snapshot» и заявлял проверку через старший
+// таймфрейм. Такой проверки не существует: ликвидации, OI, объём и CVD на H1 —
+// это ровно сумма пятнадцатиминуток внутри часа (проверено на данных, сходится
+// до доллара). Час не показывает ничего нового, он лишь агрегирует то же самое
+// по более грубому и смещённому окну. Отсюда все прежние болезни блока:
+// в окно попадал час снятия, и ликвидации снятия выдавались за ликвидации зоны,
+// а прирост OI получал неверный знак.
+//
+// Теперь блок меряет то, что действительно происходит в момент пересечения:
+//   ось 1 — ликвидации на свече инверсии (структурно однозначный момент);
+//   ось 2 — прирост OI за окно от Pivot до инверсии (точная величина).
+// H1 остаётся только источником данных: через него закрываются пропуски.
 function _scoreBlock9(mx, direction) {
-  const { h1_candle_count, h1_doi_pct, h1_liqshare_pct, h1_limb_pct } = mx;
   const m15_cvd_sign = mx.m15_cvd_sign ?? 0;
+  const liqKnown = mx.inv_liq_known === true;
 
-  if (!h1_candle_count) {
-    return {
-      score:    7,
-      label:    'H1 данные не найдены — нейтральная оценка',
-      comment:  'H1 нейтрален — ни значимых ликвидаций, ни уверенного OI. Подтверждения нет.',
-      stopFlag: false,
-    };
-  }
-
-  const liq     = h1_liqshare_pct ?? 0;
-  const doi     = h1_doi_pct      ?? 0;
-  const hasLimb = h1_limb_pct != null;
-  const against = hasLimb && _limbAgainst(h1_limb_pct, direction);
+  const liq     = liqKnown ? (mx.inv_liqshare_pct ?? 0) : 0;
+  const doi     = mx.net_oi ?? 0;
+  const hasLimb = liqKnown && mx.inv_limb_pct != null;
+  const against = hasLimb && _limbAgainst(mx.inv_limb_pct, direction);
   const isLong  = direction === 'long';
 
   const ownPos = isLong ? 'Длинные позиции'  : 'Короткие позиции';
@@ -517,34 +521,34 @@ function _scoreBlock9(mx, direction) {
       if (_cvdWithDir(m15_cvd_sign, direction)) {
         score   = 18;
         label   = 'Чистый рост: OI набран в направлении сделки';
-        comment = 'H1 чистый — новый OI без ликвидаций, поток подтверждает направление.';
+        comment = 'Зона пересечена тихо, без выноса стопов, а позиция за окно набрана. Поток подтверждает направление.';
       } else {
         cvdExplicit = true;
         const limbAgainstStrong = hasLimb
-          && _limbAgainst(h1_limb_pct, direction)
-          && Math.abs(h1_limb_pct) > 50;
+          && _limbAgainst(mx.inv_limb_pct, direction)
+          && Math.abs(mx.inv_limb_pct) > 50;
         if (limbAgainstStrong) {
           score   = 11;
           label   = 'Двойной сигнал против: поток и ликвидации против направления';
-          comment = `OI на H1 рос при давлении потока против сделки. ${ownPos} ликвидировались с перевесом — H1 системно противостоит инверсии.`;
+          comment = `Позиция за окно набиралась при давлении потока против сделки. ${ownPos} ликвидировались с перевесом — картина системно против инверсии.`;
         } else {
           score   = 14;
           label   = 'Рост OI при потоке против направления';
-          comment = `OI на H1 вырос, но CVD давил против сделки — возможен набор ${othAdj} позиций.`;
+          comment = `Позиция за окно набрана, но CVD давил против сделки — возможен набор ${othAdj} позиций.`;
         }
       }
     } else if (doi >= 0) {
       score = 13; label = 'Слабый рост: OI почти не появился';
-      comment = 'Слабый прирост OI без ликвидаций. H1 нейтрален — прямого подтверждения нет.';
+      comment = 'Зона пересечена тихо, но и позиции за окно почти не набрано. Прямого подтверждения нет.';
     } else {
-      score = 5; label = 'OI уходит, H1 не поддерживает';
-      comment = 'OI на H1 снижался — старший таймфрейм не поддерживает инверсию.';
+      score = 5; label = 'OI уходит, позиция не набрана';
+      comment = 'За окно открытый интерес снижался — под движением нет позиции.';
     }
   } else if (liq < 0.2) {
     if (doi >= 0.20) {
       if (!hasLimb) {
         score = 11; label = 'Встряска + OI вошёл';
-        comment = 'Ликвидации умеренные, OI вырос. H1 поддерживает.';
+        comment = 'Ликвидации умеренные, позиция за окно набрана. Картина поддерживает.';
       } else if (against) {
         score = 14; label = 'Зачистка позиций в направлении + OI вошёл';
         comment = `${ownPos} принудительно закрывались — после зачистки открылись новые. Уровень переоткрыт с новым ресурсом.`;
@@ -566,7 +570,7 @@ function _scoreBlock9(mx, direction) {
     if (doi >= 0.20) {
       if (!hasLimb) {
         score = 11; label = 'Значимые ликвидации + OI вошёл';
-        comment = 'Значимые ликвидации, OI вырос. H1 поддерживает.';
+        comment = 'Значимые ликвидации, позиция за окно набрана. Картина поддерживает.';
       } else if (against) {
         score = 13; label = 'Выброс позиций в направлении поглощён + OI вошёл';
         comment = `Значимый выброс ${ownAdj} позиций поглощён — новый OI вошёл после встряски.`;
@@ -597,7 +601,7 @@ function _scoreBlock9(mx, direction) {
     if (doi >= 0.20) {
       score = 14; label = 'Массовые ликвидации + OI набирается';
       if (!hasLimb) {
-        comment = 'Массовые ликвидации поглощены — OI вырос. H1 поддерживает.';
+        comment = 'Массовые ликвидации поглощены — позиция за окно набрана. Картина поддерживает.';
       } else if (against) {
         comment = `Массовые принудительные закрытия ${ownAdj} позиций поглощены — OI вырос, позиция набрана на панике.`;
       } else {
@@ -613,13 +617,15 @@ function _scoreBlock9(mx, direction) {
         comment = `Массовые принудительные закрытия ${othAdj} позиций — нового OI не появилось, движение не подкреплено.`;
       }
     } else {
-      score = 0; label = 'Массовые стопы без нового OI — СТОП'; stopFlag = true;
+      // Вето снято на переходный период: измерение блока переопределено,
+      // прежняя калибровка недействительна. Балл остаётся, запрета нет.
+      score = 0; label = 'Массовые стопы без нового OI';
       if (!hasLimb) {
-        comment = 'Массовые ликвидации при снижении OI — H1 против инверсии.';
+        comment = 'Массовые ликвидации при снижении OI за окно — картина против инверсии.';
       } else if (against) {
-        comment = `Массовые принудительные закрытия ${ownAdj} позиций при снижении OI — H1 против инверсии.`;
+        comment = `Массовые принудительные закрытия ${ownAdj} позиций при снижении OI за окно — картина против инверсии.`;
       } else {
-        comment = `Массовые принудительные закрытия ${othAdj} позиций при снижении OI — H1 против инверсии.`;
+        comment = `Массовые принудительные закрытия ${othAdj} позиций при снижении OI за окно — картина против инверсии.`;
       }
     }
   }
@@ -646,15 +652,17 @@ function _scoreBlock9(mx, direction) {
     }
   }
 
-  // Пивотный час не удалось очистить от снятия — ликвидации в оценку не вошли.
-  // Балл выставлен по одной оси OI, и об этом надо сказать прямо,
-  // а не выдать «чистый рост без ликвидаций».
-  if (mx.h1_liq_clean === false) {
-    label   = label + ' · ликвидации не учтены';
-    comment = 'Ликвидации не учтены: час, содержащий Pivot, не удалось отделить от снятия — '
-            + 'нет данных M15. Балл выставлен только по приросту OI на H1.';
-  } else if (mx.h1_liq_mismatch) {
-    comment += ' Расхождение M15 и H1 по ликвидациям — данные стоит проверить.';
+  // Ликвидации свечи инверсии неизвестны и не восстановились через час.
+  // Балл выставлен по одной оси OI — говорим об этом прямо, а не выдаём
+  // «пересечение прошло тихо».
+  if (!liqKnown) {
+    label   = label + ' · ликвидации не определены';
+    const bound = mx.inv_liq_max_pct;
+    comment = 'Ликвидации на свече инверсии определить не удалось: в данных пропуск, '
+            + 'и час не позволяет его восстановить. Балл выставлен только по приросту OI.'
+            + (bound != null ? ` Верхняя граница: не больше ${bound.toFixed(3)}% от объёма свечи.` : '');
+  } else if (mx.inv_liq_method === 'recovered') {
+    comment += ' Ликвидации свечи восстановлены сверкой с часом.';
   }
 
   return { score, label, comment, stopFlag };
@@ -673,8 +681,8 @@ function _stopFlags(b, mx, det) {
     flags.push('Механика захвата провалена: движение прошло без набора позиции');
   }
 
-  if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.h1_doi_pct ?? 0) < 0.10) {
-    flags.push('Пустая инверсия: нет OI, нет объёма, H1 не подтверждает');
+  if ((mx.gross_oi ?? 0) < 0.05 && (mx.fvg_volume_share ?? 0) < 0.20 && (mx.net_oi ?? 0) < 0.10) {
+    flags.push('Пустая инверсия: нет OI, нет объёма, позиция не набрана');
   }
   if (b.block3.score <= 2 && (mx.fvg_volume_share ?? 0) < 0.25 && (mx.gross_oi ?? 0) > 0) {
     flags.push('Слабый OI без передачи риска');
@@ -685,9 +693,11 @@ function _stopFlags(b, mx, det) {
   for (const f of (b.block8.stopFlags ?? [])) {
     flags.push(`Аномальный Skew: ${f}`);
   }
-  if (b.block9.stopFlag) {
-    flags.push('H1: вынос стопов без живого интереса');
-  }
+  // Вето блока 9 снято на переходный период: измерение блока переопределено
+  // (ликвидации свечи инверсии вместо ликвидаций окна H1, точный OI вместо
+  // суммы процентов по часам), прежняя калибровка недействительна.
+  // Балл блок ставит, но зарубить сетап не может — вернём после накопления
+  // статистики на исправленных данных.
   const mainFail = [
     b.block1.score <= 4,
     b.block3.score <= 4,
@@ -703,8 +713,8 @@ function _stopFlags(b, mx, det) {
   if (b.block4.score <= 6
       && (mx?.m15_cvd_sign ?? 0) !== 0
       && !_cvdWithDir(mx?.m15_cvd_sign, det?.direction)
-      && _limbAgainst(mx?.h1_limb_pct, det?.direction)
-      && Math.abs(mx?.h1_limb_pct ?? 0) > 50
+      && _limbAgainst(mx?.inv_limb_pct, det?.direction)
+      && Math.abs(mx?.inv_limb_pct ?? 0) > 50
       && b.total >= 70) {
     flags.push('Тройная слабость при высоком балле — сетап заблокирован');
   }
@@ -774,8 +784,8 @@ function _redFlags(b, mx, det) {
   if (b.block4.score <= 6
       && mx?.m15_cvd_sign !== 0
       && !_cvdWithDir(mx?.m15_cvd_sign, det?.direction)
-      && _limbAgainst(mx?.h1_limb_pct, det?.direction)
-      && Math.abs(mx?.h1_limb_pct ?? 0) > 50) {
+      && _limbAgainst(mx?.inv_limb_pct, det?.direction)
+      && Math.abs(mx?.inv_limb_pct ?? 0) > 50) {
     flags.push('Тройная слабость: нет захвата инверсии, CVD против направления, перевес ликвидаций против — максимальный риск провала при тесте');
   }
   // C9 — FVG пробита насквозь при высоком балле
@@ -1020,10 +1030,10 @@ function _buildConclusion(b, det, mx, sc) {
   const confirmStr = [oiPart, retPart, ...zoneParts].join(', ') + '.';
 
   let h1Str;
-  if      (b.block9.score >= 13) h1Str = 'H1 подтверждает без оговорок.';
-  else if (b.block9.score >= 11) h1Str = 'H1 поддерживает.';
-  else if (b.block9.score >=  8) h1Str = 'H1 нейтрален — подтверждения старшего таймфрейма нет.';
-  else                           h1Str = 'H1 не подтверждает.';
+  if      (b.block9.score >= 13) h1Str = 'Пересечение зоны подтверждено без оговорок.';
+  else if (b.block9.score >= 11) h1Str = 'Пересечение зоны поддержано.';
+  else if (b.block9.score >=  8) h1Str = 'Пересечение зоны нейтральное — подтверждения нет.';
+  else                           h1Str = 'Пересечение зоны не подтверждено.';
 
   const prob = _PROB[sc.verdict] || '';
 
